@@ -1,0 +1,118 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+.table th {
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.card {
+  border-radius: 10px !important;
+}
+
+.modal-content {
+  border-radius: 12px !important;
+  border: none;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STOREFRONT STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Hero section */
+.store-hero {
+  background: linear-gradient(135deg, #f8faff 0%, #eef2ff 50%, #f0f7ff 100%);
+  position: relative;
+}
+.store-hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.hero-blob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 320px;
+  height: 320px;
+  background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.08));
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  animation: blob-morph 8s ease-in-out infinite;
+}
+@keyframes blob-morph {
+  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  50%      { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+}
+
+/* Product cards */
+.store-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+.store-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.1) !important;
+}
+.store-card .card-img-top {
+  transition: transform 0.3s ease;
+}
+.store-card:hover .card-img-top {
+  transform: scale(1.05);
+}
+
+/* Navbar store */
+.navbar .nav-link {
+  font-weight: 500;
+  padding: 0.5rem 1rem !important;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.navbar .nav-link:hover {
+  background-color: rgba(0,0,0,0.04) !important;
+}
+.navbar .nav-link.active {
+  color: #0d6efd !important;
+}
+
+/* Badge hover close */
+.badge .btn-close {
+  filter: none;
+  opacity: 0.7;
+}
+.badge .btn-close:hover {
+  opacity: 1;
+}
+
+/* Shop sidebar filter transition */
+@media (max-width: 991.98px) {
+  .col-lg-3 .card {
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Smooth page transitions */
+main {
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
