@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import CartOffcanvas from './CartOffcanvas';
 
 export default function StoreLayout() {
   return (
@@ -10,6 +11,7 @@ export default function StoreLayout() {
         <Outlet />
       </main>
       <Footer />
+      <CartOffcanvas />
     </div>
   );
 }

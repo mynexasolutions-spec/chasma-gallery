@@ -1,9 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useCart } from '../../context/CartContext';
 
 export default function Navbar() {
   const { pathname } = useLocation();
   const { user } = useAuth();
+  const { getCartCount, setIsCartOpen } = useCart();
 
   return (
     <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top shadow-sm">
@@ -28,13 +30,24 @@ export default function Navbar() {
           </ul>
 
           <div className="d-flex align-items-center gap-3">
+            <button
+              className="btn btn-light rounded-circle position-relative p-2 text-dark border shadow-sm cart-btn-hover"
+              onClick={() => setIsCartOpen(true)}
+            >
+              <i className="bi bi-cart3 fs-5"></i>
+              {getCartCount() > 0 && (
+                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger shadow-sm">
+                  {getCartCount()}
+                </span>
+              )}
+            </button>
             {user ? (
-              <Link to="/admin" className="btn btn-sm btn-outline-dark">
-                <i className="bi bi-speedometer2 me-1"></i>Dashboard
+              <Link to="/admin" className="btn btn-sm btn-dark px-3 py-2 ms-2 rounded-pill shadow-sm fw-semibold">
+                <i className="bi bi-speedometer2 me-1"></i> Dashboard
               </Link>
             ) : (
-              <Link to="/admin/login" className="btn btn-sm btn-outline-dark">
-                <i className="bi bi-person me-1"></i>Sign In
+              <Link to="/admin/login" className="btn btn-sm btn-outline-dark px-3 py-2 ms-2 rounded-pill fw-semibold shadow-sm">
+                <i className="bi bi-person me-1"></i> Sign In
               </Link>
             )}
           </div>

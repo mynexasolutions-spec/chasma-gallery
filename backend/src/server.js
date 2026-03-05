@@ -30,18 +30,19 @@ app.use('/api/', rateLimit({
 }));
 
 // ── Routes ────────────────────────────────────────────────────────────────────
-app.use('/api/shop',       require('./routes/shop'));       // public storefront
-app.use('/api/auth',       require('./routes/auth'));
-app.use('/api/stats',      require('./routes/stats'));
+app.use('/api/shop', require('./routes/shop'));       // public storefront
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/stats', require('./routes/stats'));
 app.use('/api/categories', require('./routes/categories'));
-app.use('/api/brands',     require('./routes/brands'));
+app.use('/api/brands', require('./routes/brands'));
 app.use('/api/attributes', require('./routes/attributes'));
-app.use('/api/products',   require('./routes/products'));
-app.use('/api/orders',     require('./routes/orders'));
-app.use('/api/users',      require('./routes/users'));
-app.use('/api/coupons',    require('./routes/coupons'));
-app.use('/api/reviews',    require('./routes/reviews'));
-app.use('/api/settings',   require('./routes/settings'));
+app.use('/api/products', require('./routes/products'));
+app.use('/api/orders', require('./routes/orders'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/coupons', require('./routes/coupons'));
+app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/settings', require('./routes/settings'));
+app.use('/api/payment', require('./routes/payment'));
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));

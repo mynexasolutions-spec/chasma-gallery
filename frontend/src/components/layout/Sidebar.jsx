@@ -2,16 +2,17 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const navItems = [
-  { to: '/admin',            icon: 'bi-speedometer2',       label: 'Dashboard'  },
-  { to: '/admin/products',   icon: 'bi-box-seam',           label: 'Products'   },
-  { to: '/admin/categories', icon: 'bi-tags',               label: 'Categories' },
-  { to: '/admin/brands',     icon: 'bi-bookmark',           label: 'Brands'     },
-  { to: '/admin/attributes', icon: 'bi-palette2',           label: 'Attributes' },
-  { to: '/admin/orders',     icon: 'bi-receipt',            label: 'Orders'     },
-  { to: '/admin/users',      icon: 'bi-people',             label: 'Users'      },
-  { to: '/admin/coupons',    icon: 'bi-ticket-perforated',  label: 'Coupons',   adminOnly: true },
-  { to: '/admin/reviews',    icon: 'bi-star',               label: 'Reviews'    },
-  { to: '/admin/settings',   icon: 'bi-gear',               label: 'Settings',  adminOnly: true },
+  { to: '/admin', icon: 'bi-speedometer2', label: 'Dashboard' },
+  { to: '/admin/products', icon: 'bi-box-seam', label: 'Products' },
+  { to: '/admin/categories', icon: 'bi-tags', label: 'Categories' },
+  { to: '/admin/brands', icon: 'bi-bookmark', label: 'Brands' },
+  { to: '/admin/attributes', icon: 'bi-palette2', label: 'Attributes' },
+  { to: '/admin/orders', icon: 'bi-receipt', label: 'Orders' },
+  { to: '/admin/users', icon: 'bi-people', label: 'Users' },
+  { to: '/admin/coupons', icon: 'bi-ticket-perforated', label: 'Coupons', adminOnly: true },
+  { to: '/admin/reviews', icon: 'bi-star', label: 'Reviews' },
+  { to: '/admin/payments', icon: 'bi-credit-card', label: 'Payments', adminOnly: true },
+  { to: '/admin/settings', icon: 'bi-gear', label: 'Settings', adminOnly: true },
 ];
 
 export default function Sidebar() {
@@ -25,7 +26,7 @@ export default function Sidebar() {
 
   return (
     <nav className="d-flex flex-column bg-dark text-white vh-100 position-sticky top-0"
-         style={{ width: 240, minWidth: 240 }}>
+      style={{ width: 240, minWidth: 240 }}>
 
       {/* Brand */}
       <div className="px-3 py-4 border-bottom border-secondary">
@@ -58,7 +59,7 @@ export default function Sidebar() {
       <div className="px-3 py-3 border-top border-secondary">
         <div className="d-flex align-items-center gap-2 mb-2">
           <div className="bg-primary rounded-circle d-flex align-items-center justify-content-center"
-               style={{ width: 32, height: 32, fontSize: 14 }}>
+            style={{ width: 32, height: 32, fontSize: 14 }}>
             {user?.first_name?.[0]}{user?.last_name?.[0]}
           </div>
           <div>

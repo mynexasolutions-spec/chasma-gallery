@@ -8,7 +8,7 @@ const getAll = async (req, res, next) => {
     const params = [`%${search}%`];
     let where = 'WHERE (o.order_number ILIKE $1 OR u.email ILIKE $1)';
 
-    if (status)         { params.push(status);         where += ` AND o.status = $${params.length}`; }
+    if (status) { params.push(status); where += ` AND o.status = $${params.length}`; }
     if (payment_status) { params.push(payment_status); where += ` AND o.payment_status = $${params.length}`; }
 
     const { rows } = await pool.query(`

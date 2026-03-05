@@ -3,20 +3,20 @@ import api from '../services/api';
 import { Spinner, PageHeader, Alert } from '../components/ui';
 
 const FIELDS = [
-  { key: 'store_name',               label: 'Store Name',                type: 'text'   },
-  { key: 'store_email',              label: 'Store Email',               type: 'email'  },
-  { key: 'currency',                 label: 'Currency',                  type: 'text'   },
-  { key: 'tax_rate',                 label: 'Tax Rate (%)',              type: 'number' },
-  { key: 'shipping_fee',             label: 'Shipping Fee ($)',          type: 'number' },
-  { key: 'free_shipping_threshold',  label: 'Free Shipping Over ($)',    type: 'number' },
+  { key: 'store_name', label: 'Store Name', type: 'text' },
+  { key: 'store_email', label: 'Store Email', type: 'email' },
+  { key: 'currency', label: 'Currency', type: 'text' },
+  { key: 'tax_rate', label: 'Tax Rate (%)', type: 'number' },
+  { key: 'shipping_fee', label: 'Shipping Fee ($)', type: 'number' },
+  { key: 'free_shipping_threshold', label: 'Free Shipping Over ($)', type: 'number' },
 ];
 
 export default function Settings() {
   const [settings, setSettings] = useState({});
-  const [loading, setLoading]   = useState(true);
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState('');
-  const [success, setSuccess]   = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     api.get('/settings')
@@ -41,7 +41,7 @@ export default function Settings() {
   return (
     <div>
       <PageHeader title="Settings" subtitle="Configure your store settings" />
-      <Alert message={error}   type="danger"  onClose={() => setError('')} />
+      <Alert message={error} type="danger" onClose={() => setError('')} />
       <Alert message={success} type="success" onClose={() => setSuccess('')} />
 
       <div className="row justify-content-center">

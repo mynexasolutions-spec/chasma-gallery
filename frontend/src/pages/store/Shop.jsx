@@ -1,15 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
+import { useCart } from '../../context/CartContext';
 
 function ProductCard({ product }) {
+  const { addToCart } = useCart();
   const discount = product.sale_price
     ? Math.round((1 - product.sale_price / product.price) * 100) : 0;
 
   return (
-    <Link to={`/shop/product/${product.id}`} className="text-decoration-none">
-      <div className="card store-card h-100 border-0 shadow-sm">
-        <div className="position-relative overflow-hidden" style={{ height: 220 }}>
+    <div className="card store-card h-100 position-relative">
+      <Link to={`/shop/product/${product.id}`} className="text-decoration-none text-dark flex-grow-1 d-flex flex-column">
+        <div className="store-card-img-wrapper" style={{ height: 260 }}>
           {product.image_url ? (
             <img src={product.image_url} alt={product.name}
               className="card-img-top h-100 w-100" style={{ objectFit: 'cover' }} />
@@ -19,70 +21,87 @@ function ProductCard({ product }) {
             </div>
           )}
           {discount > 0 && (
-            <span className="position-absolute top-0 start-0 m-2 badge bg-danger">-{discount}%</span>
+            <span className="position-absolute top-0 start-0 m-3 badge badge-premium badge-discount shadow">-{discount}% OFF</span>
           )}
         </div>
-        <div className="card-body p-3">
+        <div className="card-body p-4 d-flex flex-column flex-grow-1">
           {product.category_name && (
-            <div className="text-muted small mb-1">{product.category_name}</div>
+            <div className="text-primary fw-semibold mb-2" style={{ fontSize: '0.75rem', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+              {product.category_name}
+            </div>
           )}
-          <h6 className="card-title mb-2 text-dark fw-semibold" style={{ fontSize: '0.9rem' }}>
+          <h5 className="card-title mb-3 fw-bold flex-grow-1" style={{ fontSize: '1.1rem', lineHeight: '1.4' }}>
             {product.name}
-          </h6>
-          <div className="d-flex align-items-center gap-2">
-            {product.sale_price ? (
-              <>
-                <span className="fw-bold text-primary">${parseFloat(product.sale_price).toFixed(2)}</span>
-                <del className="text-muted small">${parseFloat(product.price).toFixed(2)}</del>
-              </>
-            ) : (
-              <span className="fw-bold text-dark">${parseFloat(product.price).toFixed(2)}</span>
-            )}
-          </div>
-          <div className="mt-2">
-            <span className={`badge ${product.stock_status === 'in_stock' ? 'bg-success' : product.stock_status === 'backorder' ? 'bg-warning text-dark' : 'bg-secondary'}`}
-              style={{ fontSize: 10 }}>
+          </h5>
+          <div className="d-flex align-items-center justify-content-between mt-auto">
+            <div className="d-flex align-items-center gap-2">
+              {product.sale_price ? (
+                <>
+                  <span className="fw-bold fs-5 text-dark">${parseFloat(product.sale_price).toFixed(2)}</span>
+                  <del className="text-muted small">${parseFloat(product.price).toFixed(2)}</del>
+                </>
+              ) : (
+                <span className="fw-bold fs-5 text-dark">${parseFloat(product.price).toFixed(2)}</span>
+              )}
+            </div>
+            <span className={`badge rounded-pill ${product.stock_status === 'in_stock' ? 'bg-success bg-opacity-10 text-success' : product.stock_status === 'backorder' ? 'bg-warning bg-opacity-10 text-warning' : 'bg-secondary bg-opacity-10 text-secondary'}`}
+              style={{ fontSize: 11, padding: '0.4rem 0.6rem' }}>
               {product.stock_status === 'in_stock' ? 'In Stock' : product.stock_status === 'backorder' ? 'Backorder' : 'Out of Stock'}
             </span>
           </div>
         </div>
+      </Link>
+
+      {/* Quick Add Overlay */}
+      <div className="add-to-cart-overlay text-center pb-3">
+        <button
+          className="btn add-cart-btn w-100 rounded-pill shadow-sm"
+          onClick={(e) => {
+            e.preventDefault();
+            addToCart(product, 1);
+          }}
+          disabled={product.stock_status === 'out_of_stock'}
+        >
+          <i className="bi bi-cart-plus me-2"></i>
+          {product.stock_status === 'out_of_stock' ? 'Out of Stock' : 'Add to Cart'}
+        </button>
       </div>
-    </Link>
+    </div>
   );
 }
 
 export default function Shop() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [products, setProducts]     = useState([]);
+  const [products, setProducts] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [priceRange, setPriceRange] = useState({ min_price: 0, max_price: 1000 });
   const [categories, setCategories] = useState([]);
-  const [brands, setBrands]         = useState([]);
-  const [loading, setLoading]       = useState(true);
+  const [brands, setBrands] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   // Read filters from URL
-  const search     = searchParams.get('search') || '';
-  const category   = searchParams.get('category') || '';
-  const brand      = searchParams.get('brand') || '';
-  const minPrice   = searchParams.get('min_price') || '';
-  const maxPrice   = searchParams.get('max_price') || '';
-  const sort       = searchParams.get('sort') || 'newest';
-  const page       = parseInt(searchParams.get('page') || '1');
+  const search = searchParams.get('search') || '';
+  const category = searchParams.get('category') || '';
+  const brand = searchParams.get('brand') || '';
+  const minPrice = searchParams.get('min_price') || '';
+  const maxPrice = searchParams.get('max_price') || '';
+  const sort = searchParams.get('sort') || 'newest';
+  const page = parseInt(searchParams.get('page') || '1');
 
   // Fetch filter options once
   useEffect(() => {
-    api.get('/shop/categories').then(r => setCategories(r.data.data)).catch(() => {});
-    api.get('/shop/brands').then(r => setBrands(r.data.data)).catch(() => {});
+    api.get('/shop/categories').then(r => setCategories(r.data.data)).catch(() => { });
+    api.get('/shop/brands').then(r => setBrands(r.data.data)).catch(() => { });
   }, []);
 
   // Fetch products when filters change
   const fetchProducts = useCallback(() => {
     setLoading(true);
     const params = { page, limit: 12, sort };
-    if (search)   params.search = search;
+    if (search) params.search = search;
     if (category) params.category = category;
-    if (brand)    params.brand = brand;
+    if (brand) params.brand = brand;
     if (minPrice) params.min_price = minPrice;
     if (maxPrice) params.max_price = maxPrice;
 
@@ -92,7 +111,7 @@ export default function Shop() {
         setPagination(r.data.pagination);
         if (r.data.priceRange) setPriceRange(r.data.priceRange);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, [page, search, category, brand, minPrice, maxPrice, sort]);
 
@@ -112,33 +131,34 @@ export default function Shop() {
   const activeFilterCount = [category, brand, minPrice, maxPrice, search].filter(Boolean).length;
 
   return (
-    <div className="bg-light min-vh-100">
+    <div className="bg-light min-vh-100 pb-5">
       {/* Breadcrumb */}
-      <div className="bg-white border-bottom py-3">
-        <div className="container">
+      <div className="shop-header-bg py-4 mb-4">
+        <div className="container position-relative" style={{ zIndex: 1 }}>
+          <h2 className="fw-bold mb-2">Shop Collection</h2>
           <nav aria-label="breadcrumb">
-            <ol className="breadcrumb mb-0 small">
-              <li className="breadcrumb-item"><Link to="/" className="text-decoration-none">Home</Link></li>
-              <li className="breadcrumb-item active">Shop</li>
+            <ol className="breadcrumb mb-0">
+              <li className="breadcrumb-item"><Link to="/" className="text-decoration-none text-muted">Home</Link></li>
+              <li className="breadcrumb-item active fw-semibold text-dark">Shop</li>
             </ol>
           </nav>
         </div>
       </div>
 
-      <div className="container py-4">
-        <div className="row g-4">
+      <div className="container">
+        <div className="row g-5">
 
           {/* ── Sidebar Filters (Desktop) ─────────────────────────── */}
           <div className="col-lg-3">
             {/* Mobile toggle */}
-            <button className="btn btn-outline-secondary w-100 d-lg-none mb-3"
+            <button className="btn btn-outline-dark w-100 d-lg-none mb-4 rounded-pill fw-semibold"
               onClick={() => setFiltersOpen(!filtersOpen)}>
-              <i className="bi bi-funnel me-1"></i>Filters
+              <i className="bi bi-funnel me-2"></i>Filters
               {activeFilterCount > 0 && <span className="badge bg-primary ms-2">{activeFilterCount}</span>}
             </button>
 
-            <div className={`${filtersOpen ? '' : 'd-none'} d-lg-block`}>
-              <div className="card border-0 shadow-sm mb-3">
+            <div className={`${filtersOpen ? '' : 'd-none'} d-lg-block sticky-top`}>
+              <div className="card filter-card border-0 shadow-sm mb-4">
                 <div className="card-body">
                   <div className="d-flex justify-content-between align-items-center mb-3">
                     <h6 className="fw-bold mb-0">Filters</h6>
@@ -213,7 +233,7 @@ export default function Shop() {
           {/* ── Product Grid ──────────────────────────────────────── */}
           <div className="col-lg-9">
             {/* Toolbar */}
-            <div className="card border-0 shadow-sm mb-3">
+            <div className="card filter-card border-0 shadow-sm mb-4">
               <div className="card-body py-2">
                 <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
                   <div className="text-muted small">
@@ -288,9 +308,9 @@ export default function Shop() {
               </div>
             ) : (
               <>
-                <div className="row g-3">
+                <div className="row g-4">
                   {products.map(p => (
-                    <div key={p.id} className="col-6 col-md-4">
+                    <div key={p.id} className="col-12 col-md-6 col-xl-4">
                       <ProductCard product={p} />
                     </div>
                   ))}
