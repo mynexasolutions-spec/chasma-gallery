@@ -42,11 +42,11 @@ export default function Navbar() {
               )}
             </button>
             {user ? (
-              <Link to="/admin" className="btn btn-sm btn-dark px-3 py-2 ms-2 rounded-pill shadow-sm fw-semibold">
+              <Link to={user.role === 'admin' || user.role === 'manager' ? "/admin" : "/dashboard"} className="btn btn-sm btn-dark px-3 py-2 ms-2 rounded-pill shadow-sm fw-semibold">
                 <i className="bi bi-speedometer2 me-1"></i> Dashboard
               </Link>
             ) : (
-              <Link to="/admin/login" className="btn btn-sm btn-outline-dark px-3 py-2 ms-2 rounded-pill fw-semibold shadow-sm">
+              <Link to="/login" className="btn btn-sm btn-outline-dark px-3 py-2 ms-2 rounded-pill fw-semibold shadow-sm">
                 <i className="bi bi-person me-1"></i> Sign In
               </Link>
             )}

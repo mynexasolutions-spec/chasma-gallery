@@ -92,6 +92,48 @@ const updateStatus = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// GET /api/orders/my-orders
+const getMyOrders = async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, order_number, status, payment_status, total_amount, created_at 
+       FROM orders WHERE user_id = $1 ORDER BY created_at DESC`,
+      [req.user.id]
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) { next(err); }
+};
+
+// GET /api/orders/my-orders/:id
+const getMyOrderById = async (req, res, next) => {
+  try {
+    const orderRes = await pool.query(
+      `SELECT * FROM orders WHERE id = $1 AND user_id = $2`,
+      [req.params.id, req.user.id]
+    );
+
+    if (!orderRes.rows[0]) return res.status(404).json({ success: false, message: 'Order not found' });
+
+    const itemsRes = await pool.query(
+      `SELECT oi.*, p.slug as product_slug, m.file_url as image_url
+       FROM order_items oi
+       LEFT JOIN products p ON oi.product_id = p.id
+       LEFT JOIN product_images pi ON p.id = pi.product_id AND pi.is_primary = true
+       LEFT JOIN media m ON pi.media_id = m.id
+       WHERE oi.order_id = $1`,
+      [req.params.id]
+    );
+
+    res.json({
+      success: true,
+      data: {
+        ...orderRes.rows[0],
+        items: itemsRes.rows
+      }
+    });
+  } catch (err) { next(err); }
+};
+
 // PATCH /api/orders/:id/payment-status
 const updatePaymentStatus = async (req, res, next) => {
   try {
@@ -109,4 +151,4 @@ const updatePaymentStatus = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getAll, getOne, updateStatus, updatePaymentStatus };
+module.exports = { getAll, getOne, updateStatus, updatePaymentStatus, getMyOrders, getMyOrderById };

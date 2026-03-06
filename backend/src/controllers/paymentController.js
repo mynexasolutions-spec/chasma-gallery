@@ -42,11 +42,16 @@ const createOrder = async (req, res, next) => {
 
         // Create DB order
         const orderNumber = `ORD-${Math.floor(100000 + Math.random() * 900000)}`;
+        const userId = req.user ? req.user.id : null;
+
+        let billingAddress = billing;
+        let shippingAddress = billing; // using same for both for now
+
         const result = await pool.query(
             `INSERT INTO orders 
-        (order_number, status, subtotal, total_amount, payment_status, payment_method, billing_address) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-            [orderNumber, 'pending', total, total, 'unpaid', 'razorpay', JSON.stringify(billing)]
+        (user_id, order_number, status, subtotal, total_amount, payment_status, payment_method, billing_address, shipping_address) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+            [userId, orderNumber, 'pending', total, total, 'unpaid', 'razorpay', JSON.stringify(billingAddress), JSON.stringify(shippingAddress)]
         );
         const orderId = result.rows[0].id;
 

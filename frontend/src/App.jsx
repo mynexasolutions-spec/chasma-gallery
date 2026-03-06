@@ -22,18 +22,31 @@ import Home from './pages/store/Home';
 import Shop from './pages/store/Shop';
 import ProductDetail from './pages/store/ProductDetail';
 import Checkout from './pages/store/Checkout';
+import CustomerLogin from './pages/store/CustomerLogin';
+import CustomerRegister from './pages/store/CustomerRegister';
+import CustomerDashboard from './pages/store/CustomerDashboard';
 import { CartProvider } from './context/CartContext';
-
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return <Spinner />;
-  return user ? children : <Navigate to="/admin/login" replace />;
+  if (!user) return <Navigate to="/admin/login" replace />;
+  if (user.role !== 'admin' && user.role !== 'manager') return <Navigate to="/" replace />;
+  return children;
 };
 
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return <Spinner />;
-  return user ? <Navigate to="/admin" replace /> : children;
+
+  if (user) {
+    if (user.role === 'admin' || user.role === 'manager') {
+      return <Navigate to="/admin" replace />;
+    } else {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
+  return children;
 };
 
 export default function App() {
@@ -48,8 +61,10 @@ export default function App() {
               <Route path="shop" element={<Shop />} />
               <Route path="shop/product/:id" element={<ProductDetail />} />
               <Route path="checkout" element={<Checkout />} />
+              <Route path="login" element={<PublicRoute><CustomerLogin /></PublicRoute>} />
+              <Route path="register" element={<PublicRoute><CustomerRegister /></PublicRoute>} />
+              <Route path="dashboard" element={<CustomerDashboard />} />
             </Route>
-
             {/* ── Admin Dashboard ───────────────────────────────────── */}
             <Route path="/admin/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/admin" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
