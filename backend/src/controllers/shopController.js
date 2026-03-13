@@ -83,16 +83,17 @@ const getProducts = async (req, res, next) => {
     let where = `WHERE p.is_active = true AND (p.name ILIKE $1 OR p.short_description ILIKE $1)`;
 
     if (category) { params.push(category); where += ` AND p.category_id = $${params.length}`; }
-    if (brand)    { params.push(brand);    where += ` AND p.brand_id = $${params.length}`; }
-    if (min_price){ params.push(min_price); where += ` AND COALESCE(p.sale_price, p.price) >= $${params.length}`; }
-    if (max_price){ params.push(max_price); where += ` AND COALESCE(p.sale_price, p.price) <= $${params.length}`; }
+    if (brand) { params.push(brand); where += ` AND p.brand_id = $${params.length}`; }
+    if (min_price) { params.push(min_price); where += ` AND COALESCE(p.sale_price, p.price) >= $${params.length}`; }
+    if (max_price) { params.push(max_price); where += ` AND COALESCE(p.sale_price, p.price) <= $${params.length}`; }
     if (stock_status) { params.push(stock_status); where += ` AND p.stock_status = $${params.length}`; }
 
     let orderBy = 'p.created_at DESC';
-    if (sort === 'price_asc')  orderBy = 'COALESCE(p.sale_price, p.price) ASC';
+    if (sort === 'price_asc') orderBy = 'COALESCE(p.sale_price, p.price) ASC';
     if (sort === 'price_desc') orderBy = 'COALESCE(p.sale_price, p.price) DESC';
-    if (sort === 'name_asc')   orderBy = 'p.name ASC';
-    if (sort === 'name_desc')  orderBy = 'p.name DESC';
+    if (sort === 'name_asc') orderBy = 'p.name ASC';
+    if (sort === 'name_desc') orderBy = 'p.name DESC';
+    if (sort === 'featured') orderBy = 'p.is_featured DESC, p.created_at DESC';
 
     const { rows } = await pool.query(`
       SELECT p.id, p.name, p.slug, p.price, p.sale_price, p.short_description,

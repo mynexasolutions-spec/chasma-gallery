@@ -25,6 +25,12 @@ import Checkout from './pages/store/Checkout';
 import CustomerLogin from './pages/store/CustomerLogin';
 import CustomerRegister from './pages/store/CustomerRegister';
 import CustomerDashboard from './pages/store/CustomerDashboard';
+import PrivacyPolicy from './pages/store/PrivacyPolicy';
+import TermsConditions from './pages/store/TermsConditions';
+import RefundPolicy from './pages/store/RefundPolicy';
+import ShippingPolicy from './pages/store/ShippingPolicy';
+import ContactUs from './pages/store/ContactUs';
+import AboutUs from './pages/store/AboutUs';
 import { CartProvider } from './context/CartContext';
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -64,6 +70,12 @@ export default function App() {
               <Route path="login" element={<PublicRoute><CustomerLogin /></PublicRoute>} />
               <Route path="register" element={<PublicRoute><CustomerRegister /></PublicRoute>} />
               <Route path="dashboard" element={<CustomerDashboard />} />
+              <Route path="privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="terms-conditions" element={<TermsConditions />} />
+              <Route path="refund-policy" element={<RefundPolicy />} />
+              <Route path="shipping-policy" element={<ShippingPolicy />} />
+              <Route path="contact" element={<ContactUs />} />
+              <Route path="about" element={<AboutUs />} />
             </Route>
             {/* ── Admin Dashboard ───────────────────────────────────── */}
             <Route path="/admin/login" element={<PublicRoute><Login /></PublicRoute>} />

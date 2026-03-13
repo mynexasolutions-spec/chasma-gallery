@@ -118,4 +118,45 @@ const verifyPayment = async (req, res, next) => {
     }
 };
 
-module.exports = { createOrder, verifyPayment };
+const createCODOrder = async (req, res, next) => {
+    try {
+        const { items, billing, total } = req.body;
+
+        const orderNumber = `ORD-${Math.floor(100000 + Math.random() * 900000)}`;
+        const userId = req.user ? req.user.id : null;
+
+        const billingAddress = billing;
+        const shippingAddress = billing;
+
+        const result = await pool.query(
+            `INSERT INTO orders 
+        (user_id, order_number, status, subtotal, total_amount, payment_status, payment_method, billing_address, shipping_address) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+            [userId, orderNumber, 'pending', total, total, 'unpaid', 'cod', JSON.stringify(billingAddress), JSON.stringify(shippingAddress)]
+        );
+        const orderId = result.rows[0].id;
+
+        // Insert items
+        for (const item of items) {
+            const price = item.sale_price ? parseFloat(item.sale_price) : parseFloat(item.price);
+            await pool.query(
+                `INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price, total_price)
+          VALUES ($1, $2, $3, $4, $5, $6)`,
+                [orderId, item.id, item.name, item.quantity, price, price * item.quantity]
+            );
+        }
+
+        res.json({
+            success: true,
+            data: {
+                dbOrderId: orderId,
+                orderNumber: orderNumber
+            }
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = { createOrder, verifyPayment, createCODOrder };

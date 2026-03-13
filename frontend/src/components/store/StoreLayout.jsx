@@ -5,7 +5,7 @@ import CartOffcanvas from './CartOffcanvas';
 
 export default function StoreLayout() {
   return (
-    <div className="d-flex flex-column min-vh-100">
+    <div className="store-theme d-flex flex-column min-vh-100" style={{ backgroundColor: '#000', color: '#fff' }}>
       <Navbar />
       <main className="flex-grow-1">
         <Outlet />

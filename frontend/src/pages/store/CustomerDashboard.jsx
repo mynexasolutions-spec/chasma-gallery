@@ -41,66 +41,81 @@ export default function CustomerDashboard() {
     if (authLoading || loading) return <Spinner />;
 
     return (
-        <div className="container py-5">
-            <div className="row g-4">
-                {/* Sidebar */}
-                <div className="col-lg-3">
-                    <div className="card shadow-sm border-0 p-4">
-                        <h4 className="mb-4 text-break">Hello, {user?.first_name}</h4>
-                        <div className="d-flex flex-column gap-2">
-                            <Link to="/dashboard" className="btn btn-dark text-start fw-bold">
-                                <i className="bi bi-grid-fill me-2"></i> Dashboard
-                            </Link>
-                            <button onClick={handleLogout} className="btn btn-outline-danger text-start">
-                                <i className="bi bi-box-arrow-right me-2"></i> Logout
-                            </button>
+        <div className="store-theme" style={{ background: 'linear-gradient(135deg, #050505 0%, #1a1505 100%)', minHeight: '100vh', padding: '100px 0' }}>
+            <div className="container">
+                <div className="row g-5">
+                    {/* Sidebar Profile */}
+                    <div className="col-lg-3">
+                        <div className="glass-panel p-4 shadow-lg sticky-top" style={{ top: '100px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(212,175,55,0.15)' }}>
+                            <div className="text-center mb-4">
+                                <div className="rounded-circle bg-gold d-inline-flex align-items-center justify-content-center mb-3" style={{ width: 80, height: 80 }}>
+                                    <span className="fs-1 fw-bold text-dark">{user?.first_name?.charAt(0)}</span>
+                                </div>
+                                <h4 className="fw-bold text-white mb-1">Hello, {user?.first_name}</h4>
+                                <p className="text-gold small mb-0" style={{ opacity: 0.7 }}>{user?.email}</p>
+                            </div>
+
+                            <hr className="border-secondary opacity-25" />
+
+                            <div className="d-flex flex-column gap-3 mt-4">
+                                <Link to="/dashboard" className="btn text-start fw-bold w-100 d-flex align-items-center gap-2" style={{ background: '#d4af37', color: '#000', borderRadius: '8px', padding: '10px 16px' }}>
+                                    <i className="bi bi-grid-fill"></i> Dashboard
+                                </Link>
+                                <button onClick={handleLogout} className="btn text-start w-100 d-flex align-items-center gap-2" style={{ border: '1px solid rgba(212,175,55,0.4)', color: '#d4af37', borderRadius: '8px', padding: '10px 16px' }}>
+                                    <i className="bi bi-box-arrow-right"></i> Logout
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Main Content */}
-                <div className="col-lg-9">
-                    <div className="card shadow-sm border-0 p-4 mb-4">
-                        <h3 className="fw-bold mb-3">Order History</h3>
-                        {orders.length === 0 ? (
-                            <div className="text-center py-5 bg-light rounded">
-                                <i className="bi bi-box2 fs-1 text-muted mb-3 d-block"></i>
-                                <h5>No orders found</h5>
-                                <p className="text-muted">You haven't placed any orders yet.</p>
-                                <Link to="/shop" className="btn btn-primary mt-2">Start Shopping</Link>
-                            </div>
-                        ) : (
-                            <div className="table-responsive">
-                                <table className="table align-middle">
-                                    <thead className="table-light">
-                                        <tr>
-                                            <th>Order ID</th>
-                                            <th>Date</th>
-                                            <th>Total</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {orders.map(order => (
-                                            <tr key={order.id}>
-                                                <td className="fw-semibold">
-                                                    #{order.order_number}
-                                                </td>
-                                                <td>{new Date(order.created_at).toLocaleDateString()}</td>
-                                                <td>${parseFloat(order.total_amount).toFixed(2)}</td>
-                                                <td>
-                                                    <span className={`badge rounded-pill ${order.status === 'delivered' ? 'bg-success' :
-                                                        order.status === 'cancelled' ? 'bg-danger' : 'bg-warning text-dark'
-                                                        }`}>
-                                                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                                                    </span>
-                                                </td>
+                    {/* Main Content */}
+                    <div className="col-lg-9">
+                        <div className="mb-4">
+                            <h2 className="text-white fw-bold text-uppercase mb-2" style={{ letterSpacing: '2px' }}>Order History</h2>
+                            <p className="text-gold" style={{ letterSpacing: '1px' }}>Track and manage your luxury acquisitions.</p>
+                        </div>
+
+                        <div className="glass-panel p-4 shadow-sm" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(212,175,55,0.15)' }}>
+                            {orders.length === 0 ? (
+                                <div className="text-center py-5">
+                                    <i className="bi bi-bag-x display-1 text-gold opacity-50 mb-3 d-block"></i>
+                                    <h4 className="text-white">No orders found</h4>
+                                    <p className="text-gold mb-4" style={{ opacity: 0.6 }}>Your collection awaits its first masterpiece.</p>
+                                    <Link to="/shop" className="btn-gold d-inline-block text-decoration-none">Start Shopping</Link>
+                                </div>
+                            ) : (
+                                <div className="table-responsive">
+                                    <table className="table table-dark table-hover table-borderless align-middle m-0 bg-transparent">
+                                        <thead>
+                                            <tr className="border-bottom border-secondary" style={{ opacity: 0.8 }}>
+                                                <th className="py-3 text-uppercase text-gold fs-7" style={{ letterSpacing: '1px' }}>Order ID</th>
+                                                <th className="py-3 text-uppercase text-gold fs-7" style={{ letterSpacing: '1px' }}>Date</th>
+                                                <th className="py-3 text-uppercase text-gold fs-7" style={{ letterSpacing: '1px' }}>Total</th>
+                                                <th className="py-3 text-uppercase text-gold fs-7" style={{ letterSpacing: '1px' }}>Status</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
+                                        </thead>
+                                        <tbody>
+                                            {orders.map(order => (
+                                                <tr key={order.id} className="border-bottom border-secondary" style={{ borderColor: 'rgba(255,255,255,0.05) !important' }}>
+                                                    <td className="py-3">
+                                                        <span className="fw-semibold text-gold">#{order.order_number}</span>
+                                                    </td>
+                                                    <td className="py-3 text-white" style={{ opacity: 0.85 }}>{new Date(order.created_at).toLocaleDateString()}</td>
+                                                    <td className="py-3 fw-bold text-white">${parseFloat(order.total_amount).toFixed(2)}</td>
+                                                    <td className="py-3">
+                                                        <span className={`badge rounded-pill px-3 py-2 fw-normal ${order.status === 'delivered' ? 'bg-success text-white' :
+                                                            order.status === 'cancelled' ? 'bg-danger text-white' :
+                                                                'bg-gold'}`}>
+                                                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
