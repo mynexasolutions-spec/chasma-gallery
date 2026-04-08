@@ -1,148 +1,166 @@
-# E-Commerce Dashboard
+# Ecommerce Dashboard — Monorepo
 
-Full-stack admin dashboard for managing an e-commerce store.
+A full-stack ecommerce admin dashboard with a TypeScript Node.js/Express backend and Next.js frontend.
 
-**Stack:** React + Vite + Bootstrap 5 (frontend) · Node.js + Express + PostgreSQL (backend)
-
----
-
-## Project Structure
+## Architecture
 
 ```
 ecommerce-dashboard/
-├── backend/
-│   ├── src/
-│   │   ├── config/
-│   │   │   └── db.js               # PostgreSQL connection pool
-│   │   ├── controllers/
-│   │   │   ├── authController.js   # Login, logout, /me
-│   │   │   ├── statsController.js  # Dashboard overview stats
-│   │   │   ├── productsController.js
-│   │   │   ├── ordersController.js
-│   │   │   ├── usersController.js
-│   │   │   ├── couponsController.js
-│   │   │   ├── reviewsController.js
-│   │   │   └── settingsController.js
-│   │   ├── middleware/
-│   │   │   ├── auth.js             # JWT authentication + role authorization
-│   │   │   └── errorHandler.js
-│   │   ├── routes/
-│   │   │   ├── auth.js
-│   │   │   ├── stats.js
-│   │   │   ├── products.js
-│   │   │   ├── orders.js
-│   │   │   ├── users.js
-│   │   │   ├── coupons.js
-│   │   │   ├── reviews.js
-│   │   │   └── settings.js
-│   │   └── server.js               # Express entry point
-│   ├── seed.sql                    # Database schema + test data
-│   ├── .env.example
-│   └── package.json
-│
-└── frontend/
-    ├── src/
-    │   ├── components/
-    │   │   ├── layout/
-    │   │   │   ├── Sidebar.jsx
-    │   │   │   └── Layout.jsx
-    │   │   └── ui/
-    │   │       └── index.jsx       # Spinner, Badge, Pagination, StatCard, Alert
-    │   ├── context/
-    │   │   └── AuthContext.jsx     # Global auth state
-    │   ├── pages/
-    │   │   ├── Login.jsx
-    │   │   ├── Dashboard.jsx       # Overview stats + recent orders
-    │   │   ├── Products.jsx        # CRUD
-    │   │   ├── Orders.jsx          # List + status update
-    │   │   ├── Users.jsx           # List + block/unblock
-    │   │   ├── Coupons.jsx         # CRUD
-    │   │   ├── Reviews.jsx         # Approve / delete
-    │   │   └── Settings.jsx        # Store config
-    │   ├── services/
-    │   │   └── api.js              # Axios instance (credentials: true)
-    │   ├── App.jsx                 # Routes + protected route guards
-    │   └── main.jsx
-    ├── vite.config.js              # Proxy /api → localhost:5000
-    └── package.json
+├── apps/
+│   ├── backend/          # Express + TypeScript API (port 5000)
+│   └── frontend/         # Next.js + Tailwind admin panel (port 3001)
+├── packages/
+│   └── shared-types/     # Shared TypeScript interfaces
+├── API_REFERENCE.md      # Complete API documentation
+└── package.json          # npm workspaces root
 ```
 
----
+## Tech Stack
 
-## Setup
+| Layer | Technology |
+|-------|-----------|
+| **Backend** | Node.js, Express, TypeScript |
+| **Database** | PostgreSQL (Supabase) |
+| **Auth** | JWT (HTTP-only cookies) |
+| **File Storage** | Cloudinary |
+| **Frontend** | Next.js 16 (App Router), Tailwind CSS |
+| **Package Manager** | npm workspaces |
 
-### 1. PostgreSQL — create database and seed
+## Quick Start
 
+### Prerequisites
+- Node.js 18+
+- PostgreSQL database (or Supabase account)
+- Cloudinary account (for image uploads)
+
+### 1. Install dependencies
 ```bash
-psql -U postgres -c "CREATE DATABASE ecommerce_db;"
-psql -U postgres -d ecommerce_db -f backend/seed.sql
-```
-
-### 2. Backend
-
-```bash
-cd backend
-cp .env.example .env       # fill in your DB credentials and JWT secret
 npm install
-npm run dev                # runs on http://localhost:5000
 ```
 
-### 3. Frontend
+### 2. Configure environment
+Copy the env template and fill in your values:
+```bash
+cp apps/backend/.env.example apps/backend/.env
+```
+
+Required environment variables:
+```env
+PORT=5000
+NODE_ENV=development
+DATABASE_URL=postgresql://user:password@host:5432/dbname
+JWT_SECRET=your_secret_key
+JWT_EXPIRES_IN=1h
+FRONTEND_URL=http://localhost:3001
+CLOUDINARY_CLOUD_NAME=your_cloud
+CLOUDINARY_API_KEY=your_key
+CLOUDINARY_API_SECRET=your_secret
+```
+
+### 3. Seed the database
+Run the seed file against your PostgreSQL database:
+```bash
+psql -U postgres -d your_db -f apps/backend/seed.sql
+```
+Or via Supabase SQL editor: paste the contents of `apps/backend/seed.sql`.
+
+### 4. Start development servers
+
+**Terminal 1 — Backend:**
+```bash
+cd apps/backend
+npm run dev
+```
+
+**Terminal 2 — Frontend:**
+```bash
+cd apps/frontend
+npm run dev
+```
+
+### 5. Access the app
+- **Storefront (Public):** http://localhost:3001/
+- **Admin Dashboard:** http://localhost:3001/admin/login
+- **Backend API API Health:** http://localhost:5000/api/health
+
+### Default Admin Credentials
+```
+Email:    admin@store.com
+Password: Admin@1234
+```
+
+## API Documentation
+
+See [API_REFERENCE.md](./API_REFERENCE.md) for the complete API reference with all endpoints, request/response formats, and authentication requirements.
+
+## Backend Structure
+
+```
+apps/backend/src/
+├── config/
+│   ├── db.ts              # PostgreSQL pool
+│   └── cloudinary.ts      # Cloudinary config
+├── controllers/
+│   ├── authController.ts
+│   ├── productsController.ts
+│   ├── productDetailsController.ts  # Images + Variations
+│   ├── categoriesController.ts
+│   ├── brandsController.ts
+│   ├── ordersController.ts
+│   ├── usersController.ts
+│   ├── attributesController.ts
+│   ├── couponsController.ts
+│   ├── reviewsController.ts
+│   ├── settingsController.ts
+│   ├── statsController.ts
+│   ├── shopController.ts
+│   └── paymentController.ts
+├── middleware/
+│   ├── auth.ts            # JWT auth + role-based authorization
+│   ├── upload.ts          # Multer file upload
+│   └── errorHandler.ts    # Global error handler
+├── routes/                # Express route definitions
+└── server.ts              # App entry point
+```
+
+## User Roles
+
+| Role | Access |
+|------|--------|
+| `admin` | Full access to everything |
+| `manager` | Read/write access to products, orders, reviews |
+| `customer` | Can view own orders, write reviews |
+
+## Database Schema
+
+The database includes the following tables:
+- `users`, `user_addresses`
+- `categories`, `brands`
+- `products`, `product_images`, `product_variations`
+- `attributes`, `attribute_values`, `variation_attribute_values`
+- `orders`, `order_items`, `payments`
+- `reviews`, `coupons`, `coupon_usages`
+- `carts`, `cart_items`
+- `media`, `settings`
+
+See `apps/backend/seed.sql` for the full schema and sample data.
+
+## Testing
+
+The backend includes a comprehensive Jest + Supertest integration test suite.
 
 ```bash
-cd frontend
-npm install
-npm run dev                # runs on http://localhost:5173
+cd apps/backend
+npm run test
 ```
 
----
+## Type Checking
 
-## Test Credentials
+```bash
+cd apps/backend
+npx tsc --noEmit   # Should output 0 errors
+```
 
-| Role    | Email                  | Password    |
-|---------|------------------------|-------------|
-| Admin   | admin@store.com        | Admin@1234  |
-| Manager | manager@store.com      | Admin@1234  |
+## License
 
----
-
-## API Endpoints
-
-| Method | Endpoint                    | Auth         | Description              |
-|--------|-----------------------------|--------------|--------------------------|
-| POST   | /api/auth/login             | —            | Login                    |
-| POST   | /api/auth/logout            | ✓            | Logout                   |
-| GET    | /api/auth/me                | ✓            | Current user             |
-| GET    | /api/stats/overview         | admin/manager| Dashboard stats          |
-| GET    | /api/products               | admin/manager| List products            |
-| POST   | /api/products               | admin only   | Create product           |
-| PUT    | /api/products/:id           | admin only   | Update product           |
-| DELETE | /api/products/:id           | admin only   | Delete product           |
-| GET    | /api/orders                 | admin/manager| List orders              |
-| GET    | /api/orders/:id             | admin/manager| Order detail             |
-| PATCH  | /api/orders/:id/status      | admin/manager| Update order status      |
-| GET    | /api/users                  | admin/manager| List users               |
-| POST   | /api/users                  | admin/manager| Create user              |
-| PATCH  | /api/users/:id/status       | admin/manager| Block/unblock user       |
-| GET    | /api/coupons                | admin only   | List coupons             |
-| POST   | /api/coupons                | admin only   | Create coupon            |
-| PUT    | /api/coupons/:id            | admin only   | Update coupon            |
-| DELETE | /api/coupons/:id            | admin only   | Delete coupon            |
-| GET    | /api/reviews                | admin/manager| List reviews             |
-| PATCH  | /api/reviews/:id/approve    | admin/manager| Approve review           |
-| DELETE | /api/reviews/:id            | admin/manager| Delete review            |
-| GET    | /api/settings               | admin only   | Get settings             |
-| PUT    | /api/settings               | admin only   | Save settings            |
-
----
-
-## Security
-
-- JWT stored in **httpOnly cookie** — not accessible via JavaScript
-- Passwords hashed with **bcrypt** (12 rounds) — never stored in plain text
-- **Helmet.js** sets security headers automatically
-- **Rate limiting** on login (10 requests / 15 min) and all API routes
-- All DB queries use **parameterized statements** — no SQL injection risk
-- Role-based access: admin vs manager permissions enforced server-side
-- Sensitive data (password_hash, internal flags) never sent to frontend
-- CORS restricted to frontend origin only
+ISC

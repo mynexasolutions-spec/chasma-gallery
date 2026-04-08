@@ -1,0 +1,89 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+
+.chasma-theme {
+  --primary: #60a5fa;
+  --primary-hover: #3b82f6;
+  --bg-main: #0f172a;
+  --bg-glass: rgba(15, 23, 42, 0.8);
+  --border-glass: rgba(255, 255, 255, 0.1);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  --accent-light: #1e293b;
+  --font-main: 'Inter', sans-serif;
+  --font-heading: 'Playfair Display', serif;
+  --liquid-color-1: rgba(37, 99, 235, 0.2);
+  --liquid-color-2: rgba(96, 165, 250, 0.2);
+
+  font-family: var(--font-main);
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  overflow-x: hidden;
+  line-height: 1.5;
+  min-height: 100vh;
+}
+
+.chasma-theme h1, .chasma-theme h2, .chasma-theme h3, .chasma-theme h4, .chasma-theme h5, .chasma-theme h6 {
+  font-family: var(--font-heading);
+}
+
+.chasma-theme .glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass);
+  box-shadow: var(--shadow-glass);
+}
+
+.chasma-theme .liquid-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.chasma-theme .blob {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  background: linear-gradient(135deg, var(--liquid-color-1) 0%, var(--liquid-color-2) 100%);
+  filter: blur(80px);
+  border-radius: 50%;
+  z-index: -1;
+  animation: move 20s infinite alternate;
+}
+
+.chasma-theme .blob-1 { top: -10%; right: -10%; }
+.chasma-theme .blob-2 { bottom: -10%; left: -10%; animation-delay: -5s; }
+
+@keyframes move {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(100px, 100px) scale(1.1); }
+}
+
+.chasma-theme a {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+}
+
+.chasma-theme button {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: all 0.3s ease;
+  background: transparent;
+}
+
+.chasma-theme .section-padding {
+  padding: 80px 2%;
+}
+
+@media (max-width: 768px) {
+  .chasma-theme .section-padding {
+    padding: 60px 2%;
+  }
+}
