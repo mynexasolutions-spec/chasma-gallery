@@ -34,7 +34,10 @@ CREATE TABLE users (
   first_name    VARCHAR(100) NOT NULL,
   last_name     VARCHAR(100) NOT NULL,
   email         VARCHAR(255) UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
+  password_hash TEXT,
+  provider      VARCHAR(50) DEFAULT 'local',
+  provider_id   VARCHAR(255),
+  avatar_url    TEXT,
   role          VARCHAR(50)  NOT NULL DEFAULT 'customer',
   status        VARCHAR(50)  NOT NULL DEFAULT 'active',
   created_at    TIMESTAMP DEFAULT NOW(),
@@ -249,67 +252,4 @@ CREATE TABLE settings (
 -- ============================================================
 
 INSERT INTO users (id, first_name, last_name, email, password_hash, role, status) VALUES
-  ('11111111-0000-0000-0000-000000000001', 'Admin',   'User',    'admin@store.com',   '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/HS7tFuS', 'admin',    'active'),
-  ('11111111-0000-0000-0000-000000000002', 'Manager', 'User',    'manager@store.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/HS7tFuS', 'manager',  'active'),
-  ('11111111-0000-0000-0000-000000000003', 'John',    'Doe',     'john@example.com',  '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/HS7tFuS', 'customer', 'active'),
-  ('11111111-0000-0000-0000-000000000004', 'Jane',    'Smith',   'jane@example.com',  '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/HS7tFuS', 'customer', 'active'),
-  ('11111111-0000-0000-0000-000000000005', 'Bob',     'Johnson', 'bob@example.com',   '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj4J/HS7tFuS', 'customer', 'blocked');
-
-INSERT INTO categories (id, name, slug, description) VALUES
-  ('22222222-0000-0000-0000-000000000001', 'Electronics',  'electronics',  'Electronic devices and accessories'),
-  ('22222222-0000-0000-0000-000000000002', 'Clothing',     'clothing',     'Fashion and apparel'),
-  ('22222222-0000-0000-0000-000000000003', 'Books',        'books',        'Books and publications'),
-  ('22222222-0000-0000-0000-000000000004', 'Home & Garden','home-garden',  'Home and garden products');
-
-INSERT INTO brands (id, name, slug) VALUES
-  ('33333333-0000-0000-0000-000000000001', 'TechBrand',  'techbrand'),
-  ('33333333-0000-0000-0000-000000000002', 'StyleCo',    'styleco'),
-  ('33333333-0000-0000-0000-000000000003', 'BookHouse',  'bookhouse');
-
-INSERT INTO products (id, name, slug, sku, type, description, short_description, price, sale_price, stock_quantity, stock_status, is_featured, is_active, category_id, brand_id) VALUES
-  ('44444444-0000-0000-0000-000000000001', 'Wireless Headphones',  'wireless-headphones',  'SKU-001', 'simple',   'Premium wireless headphones',      'Premium sound quality',    129.99, 99.99,  50,  'in_stock',     true,  true,  '22222222-0000-0000-0000-000000000001', '33333333-0000-0000-0000-000000000001'),
-  ('44444444-0000-0000-0000-000000000002', 'Smart Watch',          'smart-watch',          'SKU-002', 'simple',   'Feature-rich smartwatch',          'Stay connected',           249.99, NULL,   30,  'in_stock',     true,  true,  '22222222-0000-0000-0000-000000000001', '33333333-0000-0000-0000-000000000001'),
-  ('44444444-0000-0000-0000-000000000003', 'Cotton T-Shirt',       'cotton-t-shirt',       'SKU-003', 'variable', 'Classic cotton t-shirt',           'Comfortable everyday wear', 29.99, 19.99, 4,   'in_stock',     false, true,  '22222222-0000-0000-0000-000000000002', '33333333-0000-0000-0000-000000000002'),
-  ('44444444-0000-0000-0000-000000000004', 'JavaScript Mastery',   'javascript-mastery',   'SKU-004', 'digital',  'Complete JS guide',                'Master JavaScript',         49.99, NULL,   999, 'in_stock',     false, true,  '22222222-0000-0000-0000-000000000003', '33333333-0000-0000-0000-000000000003'),
-  ('44444444-0000-0000-0000-000000000005', 'Bluetooth Speaker',    'bluetooth-speaker',    'SKU-005', 'simple',   'Portable bluetooth speaker',       'Powerful audio',            79.99, 59.99, 0,   'out_of_stock', false, true,  '22222222-0000-0000-0000-000000000001', '33333333-0000-0000-0000-000000000001'),
-  ('44444444-0000-0000-0000-000000000006', 'Running Shoes',        'running-shoes',        'SKU-006', 'variable', 'High performance running shoes',   'Run faster',               119.99, NULL,   25,  'in_stock',     true,  true,  '22222222-0000-0000-0000-000000000002', '33333333-0000-0000-0000-000000000002'),
-  ('44444444-0000-0000-0000-000000000007', 'USB-C Hub',            'usb-c-hub',            'SKU-007', 'simple',   '7-in-1 USB-C hub',                 'Expand your ports',         45.99, NULL,   3,   'in_stock',     false, false, '22222222-0000-0000-0000-000000000001', '33333333-0000-0000-0000-000000000001');
-
-INSERT INTO orders (id, user_id, order_number, status, subtotal, tax_amount, shipping_amount, discount_amount, total_amount, payment_status, payment_method, billing_address, shipping_address) VALUES
-  ('55555555-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000003', 'ORD-0001', 'delivered',  99.99,  10.00, 5.99, 0,     115.98, 'paid',   'stripe', '{"city":"New York"}',   '{"city":"New York"}'),
-  ('55555555-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000004', 'ORD-0002', 'processing', 249.99, 25.00, 0.00, 10.00, 264.99, 'paid',   'paypal', '{"city":"Los Angeles"}','{"city":"Los Angeles"}'),
-  ('55555555-0000-0000-0000-000000000003', '11111111-0000-0000-0000-000000000003', 'ORD-0003', 'pending',    29.99,  3.00,  5.99, 0,     38.98,  'unpaid', NULL,     '{"city":"Chicago"}',    '{"city":"Chicago"}'),
-  ('55555555-0000-0000-0000-000000000004', '11111111-0000-0000-0000-000000000004', 'ORD-0004', 'shipped',    179.98, 18.00, 5.99, 0,     203.97, 'paid',   'stripe', '{"city":"Houston"}',    '{"city":"Houston"}'),
-  ('55555555-0000-0000-0000-000000000005', '11111111-0000-0000-0000-000000000005', 'ORD-0005', 'cancelled',  49.99,  5.00,  0.00, 5.00,  49.99,  'refunded','stripe','{"city":"Phoenix"}',   '{"city":"Phoenix"}');
-
-INSERT INTO order_items (id, order_id, product_id, product_name, quantity, unit_price, total_price) VALUES
-  (uuid_generate_v4(), '55555555-0000-0000-0000-000000000001', '44444444-0000-0000-0000-000000000001', 'Wireless Headphones', 1, 99.99,  99.99),
-  (uuid_generate_v4(), '55555555-0000-0000-0000-000000000002', '44444444-0000-0000-0000-000000000002', 'Smart Watch',         1, 249.99, 249.99),
-  (uuid_generate_v4(), '55555555-0000-0000-0000-000000000003', '44444444-0000-0000-0000-000000000003', 'Cotton T-Shirt',      1, 29.99,  29.99),
-  (uuid_generate_v4(), '55555555-0000-0000-0000-000000000004', '44444444-0000-0000-0000-000000000001', 'Wireless Headphones', 1, 99.99,  99.99),
-  (uuid_generate_v4(), '55555555-0000-0000-0000-000000000004', '44444444-0000-0000-0000-000000000005', 'Bluetooth Speaker',   1, 79.99,  79.99),
-  (uuid_generate_v4(), '55555555-0000-0000-0000-000000000005', '44444444-0000-0000-0000-000000000004', 'JavaScript Mastery',  1, 49.99,  49.99);
-
-INSERT INTO payments (id, order_id, transaction_id, provider, amount, currency, status, paid_at) VALUES
-  (uuid_generate_v4(), '55555555-0000-0000-0000-000000000001', 'txn_001', 'stripe', 115.98, 'USD', 'succeeded', NOW() - INTERVAL '5 days'),
-  (uuid_generate_v4(), '55555555-0000-0000-0000-000000000002', 'txn_002', 'paypal', 264.99, 'USD', 'succeeded', NOW() - INTERVAL '3 days'),
-  (uuid_generate_v4(), '55555555-0000-0000-0000-000000000004', 'txn_004', 'stripe', 203.97, 'USD', 'succeeded', NOW() - INTERVAL '1 day');
-
-INSERT INTO coupons (id, code, type, value, usage_limit, expires_at, is_active) VALUES
-  (uuid_generate_v4(), 'SAVE10',   'percentage', 10.00, 100, NOW() + INTERVAL '30 days', true),
-  (uuid_generate_v4(), 'FLAT20',   'fixed',      20.00, 50,  NOW() + INTERVAL '15 days', true),
-  (uuid_generate_v4(), 'SUMMER25', 'percentage', 25.00, 200, NOW() - INTERVAL '1 day',   false);
-
-INSERT INTO reviews (id, product_id, user_id, rating, title, comment, is_approved) VALUES
-  (uuid_generate_v4(), '44444444-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000003', 5, 'Amazing sound!',    'Best headphones I have ever used.',  true),
-  (uuid_generate_v4(), '44444444-0000-0000-0000-000000000002', '11111111-0000-0000-0000-000000000004', 4, 'Great watch',       'Good features, battery could be better.', true),
-  (uuid_generate_v4(), '44444444-0000-0000-0000-000000000003', '11111111-0000-0000-0000-000000000003', 3, 'Average quality',   'OK for the price.',                  false),
-  (uuid_generate_v4(), '44444444-0000-0000-0000-000000000001', '11111111-0000-0000-0000-000000000004', 5, 'Worth every penny', 'Incredible noise cancellation.',     false);
-
-INSERT INTO settings (id, key, value) VALUES
-  (uuid_generate_v4(), 'store_name',      'My E-Commerce Store'),
-  (uuid_generate_v4(), 'store_email',     'contact@store.com'),
-  (uuid_generate_v4(), 'currency',        'USD'),
-  (uuid_generate_v4(), 'tax_rate',        '10'),
-  (uuid_generate_v4(), 'shipping_fee',    '5.99'),
-  (uuid_generate_v4(), 'free_shipping_threshold', '100');
+  ('11111111-0000-0000-0000-000000000001', 'Admin',   'User',    'admin@store.com',   '$2b$10$VR2E50n82k7rFGOOVc/OwussbBS.b4jnX63k2xpuGefhPsqhvIqYW', 'admin',    'active');

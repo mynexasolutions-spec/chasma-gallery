@@ -11,38 +11,42 @@ import '@/app/chasma.css';
 
 export default function CartPage() {
   const router = useRouter();
-  const { cart, cartTotal, removeFromCart, updateQuantity } = useCart();
+  const { cart, cartTotal, removeFromCart, updateQuantity, clearCart } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handleCheckout = async () => {
     setIsProcessing(true);
     try {
+      // Backend's processOrderItems expects items[].id and items[].quantity
       const orderItems = cart.map(item => ({
-        product_id: item.id,
+        id: item.id,
         quantity: item.quantity
       }));
 
-      // In the previous session, we built this robust COD checkout API 
-      // That pulls secure prices straight from the db!
       const response = await fetch('http://localhost:5000/api/payment/create-cod-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           items: orderItems,
-          customer_email: "guest@chasmagallery.com" 
+          billing: {
+            name: 'Guest Customer',
+            email: 'guest@chasmagallery.com',
+            phone: '',
+            address: ''
+          }
         }),
       });
 
       const data = await response.json();
       if (data.success) {
-        alert('Order Placed Successfully! Your items are on the way.');
-        // clear the cart
-        cart.forEach(item => removeFromCart(item.id));
+        alert(`Order Placed Successfully! Order #${data.data.orderNumber}`);
+        clearCart();
         router.push('/');
       } else {
         alert('Order failed: ' + data.message);
       }
     } catch (error) {
+      console.error('Checkout error:', error);
       alert("Checkout error. Please try again.");
     } finally {
       setIsProcessing(false);

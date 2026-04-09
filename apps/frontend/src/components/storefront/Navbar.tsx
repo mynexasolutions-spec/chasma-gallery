@@ -6,11 +6,13 @@ import { usePathname } from 'next/navigation';
 import { ShoppingCart, Menu, X, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from './CartProvider';
+import { useAuth } from '@/context/AuthContext';
 
 export const Navbar = () => {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { cartCount } = useCart();
+  const { user, logout } = useAuth();
 
   const links = [
     { name: 'Home', href: '/' },
@@ -53,9 +55,25 @@ export const Navbar = () => {
               </span>
             )}
           </Link>
-          <Link href="/admin/login" className="mobile-user-icon cursor-pointer flex items-center">
-            <User size={26} />
-          </Link>
+          {user ? (
+            <div className="flex items-center gap-4 relative group cursor-pointer">
+              <span className="text-white text-sm font-medium">Hi, {user.first_name}</span>
+              <User size={26} />
+              <div className="absolute right-0 top-10 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-200">
+                <button
+                  onClick={() => logout()}
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          ) : (
+            <Link href="/login" className="flex items-center gap-2 cursor-pointer text-white/80 hover:text-white transition-colors">
+              <span className="hidden md:inline text-sm font-medium">Sign In</span>
+              <User size={26} />
+            </Link>
+          )}
         </div>
       </nav>
 
@@ -74,15 +92,34 @@ export const Navbar = () => {
               </Link>
             ))}
             
-            <div className="w-full border-t border-white/10 pt-6 flex justify-center">
+            <div className="w-full border-t border-white/10 pt-6 flex flex-col justify-center items-center gap-4">
               <Link 
                 href="/cart" 
                 onClick={() => setIsMenuOpen(false)} 
-                className="bg-blue-500/20 border border-blue-500/50 text-blue-400 px-6 py-3 rounded-lg flex items-center gap-2 text-base font-semibold"
+                className="bg-blue-500/20 border border-blue-500/50 text-blue-400 px-6 py-3 rounded-lg flex items-center justify-center gap-2 text-base font-semibold w-full"
               >
                 <ShoppingCart size={20} />
                 Cart ({cartCount})
               </Link>
+              
+              {user ? (
+                <button 
+                  onClick={() => { setIsMenuOpen(false); logout(); }} 
+                  className="bg-red-500/20 border border-red-500/50 text-red-400 px-6 py-3 rounded-lg flex items-center justify-center gap-2 text-base font-semibold w-full"
+                >
+                  <User size={20} />
+                  Sign Out ({user.first_name})
+                </button>
+              ) : (
+                <Link 
+                  href="/login" 
+                  onClick={() => setIsMenuOpen(false)} 
+                  className="bg-white/10 border border-white/30 text-white px-6 py-3 rounded-lg flex items-center justify-center gap-2 text-base font-semibold w-full"
+                >
+                  <User size={20} />
+                  Sign In
+                </Link>
+              )}
             </div>
             
             <button className="nav-link text-red-400 mt-4" onClick={() => setIsMenuOpen(false)}>
