@@ -7,7 +7,7 @@ export const getAll = async (req: Request, res: Response, next: NextFunction) =>
     const { page = 1, limit = 20, status, payment_status, search = '' } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
     const params: any[] = [`%${search}%`];
-    let where = 'WHERE (o.order_number ILIKE $1 OR u.email ILIKE $1)';
+    let where = "WHERE (o.order_number ILIKE $1 OR COALESCE(u.email, o.billing_address->>'email', '') ILIKE $1)";
 
     if (status) { params.push(status); where += ` AND o.status = $${params.length}`; }
     if (payment_status) { params.push(payment_status); where += ` AND o.payment_status = $${params.length}`; }
@@ -15,16 +15,19 @@ export const getAll = async (req: Request, res: Response, next: NextFunction) =>
     const { rows } = await pool.query(`
       SELECT o.id, o.order_number, o.status, o.payment_status, o.payment_method,
              o.subtotal, o.tax_amount, o.shipping_amount, o.discount_amount, o.total_amount,
-             o.created_at, u.first_name, u.last_name, u.email
+             o.created_at,
+             COALESCE(u.first_name, o.billing_address->>'name', 'Guest') AS first_name,
+             COALESCE(u.last_name, '') AS last_name,
+             COALESCE(u.email, o.billing_address->>'email') AS email
       FROM orders o
-      JOIN users u ON o.user_id = u.id
+      LEFT JOIN users u ON o.user_id = u.id
       ${where}
       ORDER BY o.created_at DESC
       LIMIT $${params.length + 1} OFFSET $${params.length + 2}
     `, [...params, Number(limit), offset]);
 
     const countRes = await pool.query(
-      `SELECT COUNT(*) FROM orders o JOIN users u ON o.user_id = u.id ${where}`, params
+      `SELECT COUNT(*) FROM orders o LEFT JOIN users u ON o.user_id = u.id ${where}`, params
     );
 
     res.json({
@@ -43,8 +46,11 @@ export const getAll = async (req: Request, res: Response, next: NextFunction) =>
 export const getOne = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const orderRes = await pool.query(`
-      SELECT o.*, u.first_name, u.last_name, u.email
-      FROM orders o JOIN users u ON o.user_id = u.id
+      SELECT o.*,
+             COALESCE(u.first_name, o.billing_address->>'name', 'Guest') AS first_name,
+             COALESCE(u.last_name, '') AS last_name,
+             COALESCE(u.email, o.billing_address->>'email') AS email
+      FROM orders o LEFT JOIN users u ON o.user_id = u.id
       WHERE o.id = $1
     `, [req.params.id]);
 

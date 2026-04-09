@@ -97,6 +97,36 @@ const processShippingAndCoupons = async (client: any, code: string | null, subto
   return { coupon_id, discount_amount, shipping_amount, final_total };
 };
 
+export const getOrderSummary = async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const client = await pool.connect();
+  try {
+    const { items = [], coupon_code = null } = req.body;
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'At least one item is required' });
+    }
+
+    const { validTotal, validItems } = await processOrderItems(client, items);
+    const { discount_amount, shipping_amount, final_total } = await processShippingAndCoupons(client, coupon_code, validTotal);
+
+    res.json({
+      success: true,
+      data: {
+        subtotal: validTotal,
+        discount_amount,
+        shipping_amount,
+        total_amount: final_total,
+        item_count: validItems.reduce((count, item) => count + item.quantity, 0),
+      },
+    });
+  } catch (error: any) {
+    if (error.statusCode) return res.status(error.statusCode).json({ success: false, message: error.message });
+    next(error);
+  } finally {
+    client.release();
+  }
+};
+
 export const createOrder = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const client = await pool.connect();
   try {
@@ -127,6 +157,11 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
       [userId, orderNumber, 'pending', validTotal, discount_amount, shipping_amount, final_total, 'unpaid', 'razorpay', JSON.stringify(billing), JSON.stringify(billing)]
     );
     const orderId = result.rows[0].id;
+
+    await client.query(
+      "INSERT INTO payments (order_id, transaction_id, provider, amount, currency, status) VALUES ($1,$2,$3,$4,$5,$6)",
+      [orderId, rzpOrder.id, 'razorpay', final_total, 'INR', 'created']
+    );
 
     if (coupon_id) {
       await client.query('INSERT INTO coupon_usages (coupon_id, user_id, order_id) VALUES ($1,$2,$3)', [coupon_id, userId, orderId]);
@@ -159,19 +194,38 @@ export const createOrder = async (req: AuthRequest, res: Response, next: NextFun
 
 export const verifyPayment = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, dbOrderId, amount } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
     const config = await getRazorpayConfig();
     const generated = crypto.createHmac('sha256', config.key_secret).update(razorpay_order_id + '|' + razorpay_payment_id).digest('hex');
-    if (generated === razorpay_signature) {
-      await pool.query("UPDATE orders SET payment_status = 'paid', status = 'processing', payment_method = 'razorpay' WHERE id = $1", [dbOrderId]);
-      await pool.query(
-        "INSERT INTO payments (order_id, transaction_id, provider, amount, currency, status, paid_at) VALUES ($1,$2,$3,$4,$5,$6,NOW())",
-        [dbOrderId, razorpay_payment_id, 'razorpay', amount, 'INR', 'succeeded']
-      );
-      res.json({ success: true, message: 'Payment verified successfully' });
-    } else {
-      res.status(400).json({ success: false, message: 'Invalid Signature' });
+    if (generated !== razorpay_signature) {
+      return res.status(400).json({ success: false, message: 'Invalid signature' });
     }
+
+    const paymentRes = await pool.query(
+      `SELECT p.id, p.order_id, p.amount, p.currency, p.status, o.payment_status
+       FROM payments p
+       JOIN orders o ON o.id = p.order_id
+       WHERE p.transaction_id = $1 AND p.provider = 'razorpay'
+       ORDER BY p.paid_at DESC NULLS LAST, p.id DESC
+       LIMIT 1`,
+      [razorpay_order_id]
+    );
+
+    const payment = paymentRes.rows[0];
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Payment order not found' });
+    }
+
+    if (payment.status === 'succeeded' || payment.payment_status === 'paid') {
+      return res.status(409).json({ success: false, message: 'Payment already verified' });
+    }
+
+    await pool.query("UPDATE orders SET payment_status = 'paid', status = 'processing', payment_method = 'razorpay' WHERE id = $1", [payment.order_id]);
+    await pool.query(
+      "UPDATE payments SET status = $1, paid_at = NOW() WHERE id = $2",
+      ['succeeded', payment.id]
+    );
+    res.json({ success: true, message: 'Payment verified successfully' });
   } catch (error) { next(error); }
 };
 

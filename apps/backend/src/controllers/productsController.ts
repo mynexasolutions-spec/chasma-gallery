@@ -15,6 +15,9 @@ export const getAll = async (req: Request, res: Response, next: NextFunction) =>
     if (category_id) { params.push(category_id); where += ` AND p.category_id = $${params.length}`; }
     if (brand_id)    { params.push(brand_id);    where += ` AND p.brand_id = $${params.length}`; }
 
+    const limitParamIndex = params.length + 1;
+    const offsetParamIndex = params.length + 2;
+
     const { rows } = await pool.query(`
       SELECT p.id, p.name, p.sku, p.type, p.price, p.sale_price,
              p.stock_quantity, p.stock_status, p.is_active, p.is_featured,
@@ -27,7 +30,7 @@ export const getAll = async (req: Request, res: Response, next: NextFunction) =>
       LEFT JOIN media m ON pi.media_id = m.id
       ${where}
       ORDER BY p.created_at DESC
-      LIMIT $2 OFFSET $3
+      LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}
     `, [...params, Number(limit), offset]);
 
     const countRes = await pool.query(

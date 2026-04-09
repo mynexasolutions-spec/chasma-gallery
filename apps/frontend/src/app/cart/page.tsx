@@ -1,32 +1,84 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ShoppingCart, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Navbar } from '@/components/storefront/Navbar';
 import { Footer } from '@/components/storefront/Footer';
 import { useCart } from '@/components/storefront/CartProvider';
+import api from '@/lib/api';
 import '@/app/chasma.css';
+
+interface OrderSummary {
+  subtotal: number;
+  discount_amount: number;
+  shipping_amount: number;
+  total_amount: number;
+}
+
+const formatCurrency = (value: number) => `Rs. ${value.toFixed(0)}`;
 
 export default function CartPage() {
   const router = useRouter();
-  const { cart, cartTotal, removeFromCart, updateQuantity, clearCart } = useCart();
+  const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [summary, setSummary] = useState<OrderSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState('');
+  const cartTotal = cart.reduce((total, item) => total + (Number(item.rawPrice) || 0) * item.quantity, 0);
+
+  const orderItems = useMemo(
+    () =>
+      cart.map((item) => ({
+        id: item.id,
+        quantity: item.quantity,
+      })),
+    [cart]
+  );
+
+  useEffect(() => {
+    if (orderItems.length === 0) {
+      setSummary(null);
+      setSummaryError('');
+      setSummaryLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const loadSummary = async () => {
+      setSummaryLoading(true);
+      setSummaryError('');
+
+      try {
+        const response = await api.post('/payment/summary', { items: orderItems });
+        if (!cancelled) {
+          setSummary(response.data.data);
+        }
+      } catch (error: any) {
+        if (!cancelled) {
+          setSummary(null);
+          setSummaryError(error.response?.data?.message || 'Unable to calculate order total right now.');
+        }
+      } finally {
+        if (!cancelled) {
+          setSummaryLoading(false);
+        }
+      }
+    };
+
+    loadSummary();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [orderItems]);
 
   const handleCheckout = async () => {
     setIsProcessing(true);
     try {
-      // Backend's processOrderItems expects items[].id and items[].quantity
-      const orderItems = cart.map(item => ({
-        id: item.id,
-        quantity: item.quantity
-      }));
-
-      const response = await fetch('http://localhost:5000/api/payment/create-cod-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+      const response = await api.post('/payment/create-cod-order', {
           items: orderItems,
           billing: {
             name: 'Guest Customer',
@@ -34,20 +86,19 @@ export default function CartPage() {
             phone: '',
             address: ''
           }
-        }),
       });
 
-      const data = await response.json();
+      const data = response.data;
       if (data.success) {
-        alert(`Order Placed Successfully! Order #${data.data.orderNumber}`);
+        alert(`Order placed successfully. Order #${data.data.orderNumber}`);
         clearCart();
         router.push('/');
       } else {
-        alert('Order failed: ' + data.message);
+        alert(`Order failed: ${data.message}`);
       }
     } catch (error) {
       console.error('Checkout error:', error);
-      alert("Checkout error. Please try again.");
+      alert('Checkout error. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -77,7 +128,7 @@ export default function CartPage() {
 
           {cart.length === 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyItems: 'center', gap: '2rem', padding: 'clamp(2rem, 5vw, 4rem) 1rem' }}>
-              <div className="glass" style={{ padding: 'clamp(2rem, 5vw, 4rem) clamp(1.5rem, 5vw, 3rem)', borderRadius: '2rem', textAlign: 'center', maxWidth: '600px', background: 'rgba(96, 165, 250, 0.05)', margin: "0 auto" }}>
+              <div className="glass" style={{ padding: 'clamp(2rem, 5vw, 4rem) clamp(1.5rem, 5vw, 3rem)', borderRadius: '2rem', textAlign: 'center', maxWidth: '600px', background: 'rgba(96, 165, 250, 0.05)', margin: '0 auto' }}>
                 <ShoppingCart size={64} style={{ margin: '0 auto 1.5rem', color: 'var(--primary)', opacity: 0.6 }} />
                 <h3 style={{ fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', marginBottom: '0.5rem', color: 'var(--text-main)' }}>Your cart is empty</h3>
                 <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '1.05rem' }}>Explore our collection and find the perfect eyewear for you</p>
@@ -107,7 +158,7 @@ export default function CartPage() {
                           <img src={item.image} className="cart-item-image bg-white" style={{ width: '100px', height: '100px', objectFit: 'contain', borderRadius: '0.75rem', flexShrink: 0, padding:"4px" }} alt={item.name} />
                           
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <h4 style={{ fontSize: 'clamp(0.95rem, 2vw, 1.05rem)', fontWeight: 600, marginBottom: '0.25rem', wordBreak: 'break-word', color: "white" }}>{item.name}</h4>
+                            <h4 style={{ fontSize: 'clamp(0.95rem, 2vw, 1.05rem)', fontWeight: 600, marginBottom: '0.25rem', wordBreak: 'break-word', color: 'white' }}>{item.name}</h4>
                             <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.75rem, 2vw, 0.85rem)', marginBottom: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.categoryLabel}</p>
                             
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
@@ -118,7 +169,7 @@ export default function CartPage() {
                               <div style={{ fontSize: 'clamp(0.8rem, 2vw, 0.9rem)', color: 'var(--text-muted)' }}>
                                 ₹{itemPrice.toFixed(0)} <span style={{ color: 'var(--text-muted)', marginLeft: '0.25rem' }}>×</span> <span style={{ marginLeft: '0.25rem', fontWeight: 600, color: 'var(--text-main)' }}>{item.quantity}</span>
                               </div>
-                              <span style={{ fontSize: 'clamp(1rem, 2vw, 1.1rem)', fontWeight: 700, color: 'var(--primary)' }}>₹{itemTotal.toFixed(0)}</span>
+                              <span style={{ fontSize: 'clamp(1rem, 2vw, 1.1rem)', fontWeight: 700, color: 'var(--primary)' }}>{formatCurrency(itemTotal)}</span>
                             </div>
                           </div>
                           
@@ -140,7 +191,7 @@ export default function CartPage() {
                 <div className="glass" style={{ padding: 'clamp(1.5rem, 3vw, 2rem)', borderRadius: '1.5rem', background: 'linear-gradient(135deg, rgba(96, 165, 250, 0.1), rgba(37, 99, 235, 0.1))', border: '1px solid rgba(96, 165, 250, 0.2)' }}>
                   <h3 style={{ fontSize: 'clamp(1.05rem, 3vw, 1.2rem)', marginBottom: '1.5rem', color: 'var(--text-main)' }}>Order Summary</h3>
                   
-                  {(() => {
+                  {false && (() => {
                     const subtotal = cartTotal;
                     const tax = subtotal * 0.08;
                     const shipping = subtotal > 2000 ? 0 : 150;
@@ -182,21 +233,57 @@ export default function CartPage() {
                       </>
                     );
                   })()}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                    {summaryError && (
+                      <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '0.75rem', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#ef4444' }}>
+                        {summaryError}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Subtotal</span>
+                      <span style={{ fontWeight: 600 }}>{formatCurrency(summary?.subtotal ?? 0)}</span>
+                    </div>
+                    {(summary?.discount_amount ?? 0) > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Discount</span>
+                        <span style={{ fontWeight: 600, color: '#22c55e' }}>-{formatCurrency(summary?.discount_amount ?? 0)}</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid rgba(96, 165, 250, 0.3)', fontSize: 'clamp(0.85rem, 2vw, 0.95rem)' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>Shipping {(summary?.shipping_amount ?? 0) === 0 && <span style={{ color: 'var(--primary)', fontSize: '0.75rem', marginLeft: '0.5rem' }}>(FREE)</span>}</span>
+                      <span style={{ fontWeight: 600 }}>{formatCurrency(summary?.shipping_amount ?? 0)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', fontSize: 'clamp(0.95rem, 2vw, 1.1rem)' }}>
+                      <span style={{ fontWeight: 600 }}>Total</span>
+                      <span style={{ fontSize: 'clamp(1.4rem, 4vw, 1.8rem)', fontWeight: 800, color: 'var(--primary)', background: 'linear-gradient(135deg, var(--primary), #3b82f6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>{formatCurrency(summary?.total_amount ?? 0)}</span>
+                    </div>
+                    <div style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '0.75rem', padding: '0.75rem', marginBottom: '1.5rem', fontSize: '0.8rem', color: '#22c55e', textAlign: 'center' }}>
+                      Totals are calculated by the backend and will match the final order amount.
+                    </div>
+                    <button
+                      onClick={handleCheckout}
+                      disabled={isProcessing || summaryLoading || !summary || !!summaryError}
+                      className="glass liquid-btn"
+                      style={{ width: '100%', padding: 'clamp(0.75rem, 2vw, 1rem)', borderRadius: '0.75rem', background: 'linear-gradient(135deg, var(--primary), #3b82f6)', color: 'white', fontWeight: 'bold', fontSize: 'clamp(0.9rem, 2vw, 1rem)', border: 'none', cursor: isProcessing || summaryLoading || !summary || !!summaryError ? 'not-allowed' : 'pointer', transition: 'all 0.3s ease', opacity: isProcessing || summaryLoading || !summary || !!summaryError ? 0.7 : 1 }}
+                    >
+                      {isProcessing ? 'Processing Order...' : summaryLoading ? 'Updating Total...' : 'Confirm COD Order'}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="info-icons glass" style={{ padding: 'clamp(1.25rem, 3vw, 1.5rem)', borderRadius: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(96, 165, 250, 0.15)' }}>
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
                     <div style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'rgba(96, 165, 250, 0.2)', color: 'var(--primary)', flexShrink: 0, fontSize: '1.2rem' }}>✓</div>
                     <div>
-                      <h4 style={{ fontSize: 'clamp(0.85rem, 2vw, 0.95rem)', fontWeight: 600, marginBottom: '0.2rem', color: "white" }}>Cash on Delivery</h4>
+                      <h4 style={{ fontSize: 'clamp(0.85rem, 2vw, 0.95rem)', fontWeight: 600, marginBottom: '0.2rem', color: 'white' }}>Cash on Delivery</h4>
                       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Pay when it arrives at your door</p>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
                     <div style={{ width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'rgba(96, 165, 250, 0.2)', color: 'var(--primary)', flexShrink: 0, fontSize: '1.2rem' }}>🚚</div>
                     <div>
-                      <h4 style={{ fontSize: 'clamp(0.85rem, 2vw, 0.95rem)', fontWeight: 600, marginBottom: '0.2rem', color: "white" }}>Fast Delivery</h4>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Delhi NCR: 1-2 days</p>
+                      <h4 style={{ fontSize: 'clamp(0.85rem, 2vw, 0.95rem)', fontWeight: 600, marginBottom: '0.2rem', color: 'white' }}>Backend-priced delivery</h4>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Shipping is determined from server settings at checkout time.</p>
                     </div>
                   </div>
                 </div>
@@ -210,3 +297,6 @@ export default function CartPage() {
     </div>
   );
 }
+
+
+

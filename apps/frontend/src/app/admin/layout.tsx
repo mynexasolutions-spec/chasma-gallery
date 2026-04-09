@@ -6,16 +6,30 @@ import { useRouter, usePathname } from 'next/navigation';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { AdminHeader } from '@/components/layout/AdminHeader';
 
+const ADMIN_ROLES = new Set(['admin', 'manager']);
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const canAccessAdmin = !!user && ADMIN_ROLES.has(user.role);
 
   React.useEffect(() => {
-    if (!loading && !user && pathname !== '/admin/login') {
+    if (loading) {
+      return;
+    }
+
+    if (pathname === '/admin/login') {
+      if (canAccessAdmin) {
+        router.replace('/admin/dashboard');
+      }
+      return;
+    }
+
+    if (!canAccessAdmin) {
       router.replace('/admin/login');
     }
-  }, [user, loading, pathname, router]);
+  }, [canAccessAdmin, loading, pathname, router]);
 
   if (loading) {
     return (
@@ -31,7 +45,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   // Otherwise, render full Dashboard Shell
-  if (!user) return null;
+  if (!canAccessAdmin) return null;
 
   return (
     <div className="flex h-screen w-full bg-gray-50 dark:bg-gray-900 overflow-hidden">

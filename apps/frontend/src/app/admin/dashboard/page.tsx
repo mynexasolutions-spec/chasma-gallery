@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -15,19 +16,19 @@ import {
   BarChart3,
 } from 'lucide-react';
 
-// ── Status badge helper ────────────────────────────────────────────
+// Status badge helper
 const ORDER_STATUS: Record<string, { color: string; label: string }> = {
-  pending:    { color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',       label: 'Pending' },
-  processing: { color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',           label: 'Processing' },
-  shipped:    { color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',    label: 'Shipped' },
-  delivered:  { color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',       label: 'Delivered' },
-  cancelled:  { color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',               label: 'Cancelled' },
+  pending:    { color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400', label: 'Pending' },
+  processing: { color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400', label: 'Processing' },
+  shipped:    { color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400', label: 'Shipped' },
+  delivered:  { color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400', label: 'Delivered' },
+  cancelled:  { color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400', label: 'Cancelled' },
 };
 
 const PAYMENT_STATUS: Record<string, { color: string; label: string }> = {
   paid:     { color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400', label: 'Paid' },
   unpaid:   { color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400', label: 'Unpaid' },
-  refunded: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',        label: 'Refunded' },
+  refunded: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300', label: 'Refunded' },
 };
 
 const CHART_COLORS = ['#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#06b6d4'];
@@ -37,9 +38,9 @@ function StatusBadge({ value, map }: { value: string; map: Record<string, { colo
   return <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${entry.color}`}>{entry.label}</span>;
 }
 
-const fmt = (n: number | string) => `₹${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+const fmt = (n: number | string) => `Rs. ${Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
-// ── Types ──────────────────────────────────────────────────────────
+// Types
 interface Stats {
   total_customers: number;
   total_orders: number;
@@ -74,7 +75,7 @@ interface RevenueDay { date: string; revenue: number; orders: number; }
 interface CategorySale { category: string; order_count: number; revenue: number; }
 interface TopCustomer { id: string; first_name: string; last_name: string; email: string; order_count: number; total_spent: number; }
 
-// ── Component ──────────────────────────────────────────────────────
+// Component
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([]);
@@ -121,19 +122,17 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Dashboard</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Welcome back! Here&apos;s what&apos;s happening.</p>
       </div>
 
-      {/* ── Stat Cards ──────────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           { label: 'Total Revenue', value: fmt(stats.total_revenue), icon: DollarSign, accent: 'text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400' },
-          { label: 'Total Orders',  value: stats.total_orders,       icon: ShoppingCart, accent: 'text-indigo-600 bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400', sub: `${stats.pending_orders} pending` },
-          { label: 'Customers',     value: stats.total_customers,    icon: Users, accent: 'text-cyan-600 bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400' },
-          { label: 'Active Products', value: stats.active_products,  icon: Package, accent: 'text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400', sub: `${stats.low_stock} low stock` },
+          { label: 'Total Orders',  value: stats.total_orders, icon: ShoppingCart, accent: 'text-indigo-600 bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-400', sub: `${stats.pending_orders} pending` },
+          { label: 'Customers', value: stats.total_customers, icon: Users, accent: 'text-cyan-600 bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400' },
+          { label: 'Active Products', value: stats.active_products, icon: Package, accent: 'text-amber-600 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400', sub: `${stats.low_stock} low stock` },
         ].map(s => (
           <div key={s.label} className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-950">
             <div className="flex items-center justify-between">
@@ -148,7 +147,6 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* ── Revenue Chart ───────────────────────────────────────────── */}
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-950">
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-800">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
@@ -195,18 +193,16 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Category Sales + Top Customers ──────────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Sales by Category */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-800 dark:bg-gray-950">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white mb-4">
+          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
             <BarChart3 className="h-4 w-4 text-indigo-500" /> Sales by Category
           </h3>
           {categoryData.length === 0 ? (
-            <p className="text-center text-sm text-gray-500 py-8">No category data</p>
+            <p className="py-8 text-center text-sm text-gray-500">No category data</p>
           ) : categoryData.map((c, i) => (
             <div key={i} className="mb-4">
-              <div className="flex justify-between text-sm mb-1">
+              <div className="mb-1 flex justify-between text-sm">
                 <span className="font-medium text-gray-900 dark:text-white">{c.category}</span>
                 <span className="text-gray-500 dark:text-gray-400">{fmt(c.revenue)} ({c.order_count} orders)</span>
               </div>
@@ -223,7 +219,6 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Top Customers */}
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-950">
           <div className="border-b border-gray-100 px-6 py-4 dark:border-gray-800">
             <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">
@@ -231,17 +226,17 @@ export default function DashboardPage() {
             </h3>
           </div>
           {topCustomers.length === 0 ? (
-            <p className="text-center text-sm text-gray-500 py-8">No customer data</p>
+            <p className="py-8 text-center text-sm text-gray-500">No customer data</p>
           ) : (
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
               {topCustomers.map(c => (
                 <div key={c.id} className="flex items-center gap-3 px-6 py-3">
-                  <div className="h-8 w-8 flex-shrink-0 rounded-full bg-rose-100 flex items-center justify-center text-xs font-bold text-rose-700 dark:bg-rose-900/30 dark:text-rose-400">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-700 dark:bg-rose-900/30 dark:text-rose-400">
                     {c.first_name[0]}{c.last_name[0]}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{c.first_name} {c.last_name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{c.email}</p>
+                    <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{c.first_name} {c.last_name}</p>
+                    <p className="truncate text-xs text-gray-500 dark:text-gray-400">{c.email}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-green-600 dark:text-green-400">{fmt(c.total_spent)}</p>
@@ -254,13 +249,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Recent Orders + Top Products ─────────────────────────────── */}
       <div className="grid gap-4 lg:grid-cols-7">
-        {/* Recent Orders */}
-        <div className="lg:col-span-4 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-950">
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-950 lg:col-span-4">
           <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-800">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Recent Orders</h3>
-            <Link href="/orders" className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All →</Link>
+            <Link href="/admin/orders" className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All -&gt;</Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -275,7 +268,7 @@ export default function DashboardPage() {
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                 {recentOrders.map(o => (
-                  <tr key={o.id} className="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
+                  <tr key={o.id} className="transition-colors hover:bg-gray-50 dark:hover:bg-gray-900/50">
                     <td className="px-6 py-3 text-sm font-semibold text-indigo-600 dark:text-indigo-400">#{o.order_number}</td>
                     <td className="px-6 py-3 text-sm text-gray-600 dark:text-gray-400">{o.first_name} {o.last_name}</td>
                     <td className="px-6 py-3 text-sm font-medium text-gray-900 dark:text-white">{fmt(o.total_amount)}</td>
@@ -288,20 +281,19 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Top Products */}
-        <div className="lg:col-span-3 rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-950">
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-950 lg:col-span-3">
           <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-800">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Top Products by Revenue</h3>
-            <Link href="/products" className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All →</Link>
+            <Link href="/admin/products" className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">View All -&gt;</Link>
           </div>
-          <div className="p-6 space-y-4">
+          <div className="space-y-4 p-6">
             {topProducts.map((p, idx) => (
               <div key={p.id} className="flex items-center gap-3">
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-sm font-bold text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400">
                   {idx + 1}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{p.name}</p>
+                  <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{p.name}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">{p.total_orders} orders</p>
                 </div>
                 <span className="text-sm font-bold text-green-600 dark:text-green-400">{fmt(p.revenue)}</span>
@@ -311,25 +303,24 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── Alerts ─────────────────────────────────────────────────── */}
       {(stats.pending_orders > 0 || stats.low_stock > 0) && (
         <div className="grid gap-4 md:grid-cols-2">
           {stats.pending_orders > 0 && (
             <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-900/20">
-              <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+              <Clock className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
               <span className="text-sm text-amber-800 dark:text-amber-300">
                 <strong>{stats.pending_orders}</strong> order(s) awaiting processing.
               </span>
-              <Link href="/orders" className="ml-auto rounded-md bg-amber-600 px-3 py-1 text-xs font-medium text-white hover:bg-amber-700">Review</Link>
+              <Link href="/admin/orders" className="ml-auto rounded-md bg-amber-600 px-3 py-1 text-xs font-medium text-white hover:bg-amber-700">Review</Link>
             </div>
           )}
           {stats.low_stock > 0 && (
             <div className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-900/20">
-              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+              <AlertTriangle className="h-5 w-5 flex-shrink-0 text-red-600 dark:text-red-400" />
               <span className="text-sm text-red-800 dark:text-red-300">
                 <strong>{stats.low_stock}</strong> product(s) low on stock.
               </span>
-              <Link href="/products" className="ml-auto rounded-md bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700">Review</Link>
+              <Link href="/admin/products" className="ml-auto rounded-md bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700">Review</Link>
             </div>
           )}
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Product } from '@ecommerce/shared-types';
+import api from '@/lib/api';
 
 export interface StorefrontProduct {
   id: string;
@@ -18,6 +18,8 @@ export interface StorefrontProduct {
   stock_status: string;
 }
 
+const formatPrice = (value: string | number) => `Rs. ${value}`;
+
 export const useStorefrontProducts = () => {
   const [products, setProducts] = useState<StorefrontProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,8 +27,8 @@ export const useStorefrontProducts = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/products?limit=100');
-        const json = await res.json();
+        const res = await api.get('/products', { params: { limit: 100 } });
+        const json = res.data;
         
         if (json.success) {
           const normalized = json.data.map((p: any) => ({
@@ -48,7 +50,7 @@ export const useStorefrontProducts = () => {
           setProducts(normalized);
         }
       } catch (error) {
-        console.error("Failed to fetch products:", error);
+        console.error('Failed to fetch products:', error);
       } finally {
         setLoading(false);
       }
@@ -59,3 +61,6 @@ export const useStorefrontProducts = () => {
 
   return { products, loading };
 };
+
+
+

@@ -27,6 +27,17 @@ describe('Products API', () => {
     expect(res.body.pagination).toHaveProperty('total');
   });
 
+  it('GET /api/products supports category filters without breaking pagination params', async () => {
+    const res = await request(app)
+      .get('/api/products')
+      .query({ category_id: '00000000-0000-0000-0000-000000000001', limit: 5, page: 1 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.pagination.limit).toBe(5);
+  });
+
   // ── Create ───────────────────────────────────────────────
   it('POST /api/products creates a product', async () => {
     const res = await request(app)
