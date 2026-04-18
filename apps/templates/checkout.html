@@ -1,0 +1,390 @@
+{% extends "base.html" %}
+{% block title %}Checkout – ChasmaGallery{% endblock %}
+
+{% block extra_css %}
+<style>
+  .checkout-grid {
+    display:grid; grid-template-columns:1fr 420px; gap:2rem; align-items:start;
+  }
+  @media(max-width:900px) { .checkout-grid { grid-template-columns:1fr; } }
+  .field-group { display:flex; flex-direction:column; gap:0.4rem; }
+  .field-group label { font-size:0.82rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
+  .field-input {
+    padding:0.75rem 1rem; background:rgba(255,255,255,0.05); border:1px solid var(--border-glass);
+    border-radius:0.625rem; color:var(--text-main); font-size:0.95rem; outline:none;
+    transition:border-color 0.2s; font-family:inherit; width:100%; box-sizing:border-box;
+  }
+  .field-input:focus { border-color:var(--primary); }
+  .form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media(max-width:520px) { .form-row-2 { grid-template-columns:1fr; } }
+  .payment-option {
+    display:flex; align-items:flex-start; gap:0.875rem; padding:1.1rem 1.25rem;
+    border:2px solid var(--border-glass); border-radius:0.875rem; cursor:pointer;
+    transition:border-color 0.2s; background:rgba(255,255,255,0.02);
+  }
+  .payment-option:has(input:checked) { border-color:var(--primary); background:rgba(96,165,250,0.06); }
+  .payment-option input[type="radio"] { accent-color:var(--primary); width:18px; height:18px; margin-top:2px; flex-shrink:0; }
+  .saved-addr-card {
+    border:2px solid var(--border-glass); border-radius:0.875rem; padding:1rem 1.25rem;
+    cursor:pointer; transition:border-color 0.2s; background:rgba(255,255,255,0.02);
+  }
+  .saved-addr-card:hover { border-color:rgba(96,165,250,0.5); }
+  .saved-addr-card.selected { border-color:var(--primary); background:rgba(96,165,250,0.06); }
+  .cart-summary-item { display:flex; gap:0.875rem; align-items:center; padding:0.75rem 0; border-bottom:1px solid rgba(255,255,255,0.06); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="padding:2rem 2% 4rem; max-width:1200px; margin:0 auto; color:var(--text-main);">
+
+  <div style="margin-bottom:1.75rem;">
+    <nav style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.75rem;">
+      <a href="{{ url_for('cart.view_cart') }}" style="color:var(--text-muted);">← Back to Cart</a>
+    </nav>
+    <h1 style="font-size:2rem; font-weight:800; font-family:var(--font-heading);">Checkout</h1>
+  </div>
+
+  <form method="POST" action="{{ url_for('checkout.checkout') }}" id="checkoutForm">
+    <input type="hidden" name="_csrf" value="{{ csrf_token() }}" />
+    <div class="checkout-grid">
+
+      <!-- ══ LEFT COLUMN: ADDRESS + PAYMENT ══ -->
+      <div style="display:flex; flex-direction:column; gap:1.75rem;">
+
+        <!-- Delivery Address -->
+        <div class="glass" style="border-radius:1.5rem; padding:1.75rem;">
+          <h2 style="font-size:1.15rem; font-weight:700; margin-bottom:1.5rem;">Delivery Address</h2>
+
+          {% if addresses %}
+          <div id="savedAddressSection">
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">Select a saved address or enter a new one:</p>
+            <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.25rem;" id="savedAddrList">
+              {% for addr in addresses %}
+              <div class="saved-addr-card {% if loop.first %}selected{% endif %}"
+                   onclick="selectSavedAddress(this, {{ addr | tojson | safe }})"
+                   data-addr="{{ addr | tojson | safe }}">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+                  <span style="font-weight:700; font-size:0.9rem; color:var(--primary);">{{ addr.label }}</span>
+                  {% if addr.is_default %}<span style="font-size:0.7rem; background:var(--primary); color:white; padding:0.15rem 0.5rem; border-radius:999px; font-weight:700;">Default</span>{% endif %}
+                </div>
+                <div style="font-weight:600; font-size:0.9rem;">{{ addr.first_name }} {{ addr.last_name }}</div>
+                <div style="color:var(--text-muted); font-size:0.82rem; line-height:1.5; margin-top:0.2rem;">
+                  {{ addr.address_line1 }}{% if addr.address_line2 %}, {{ addr.address_line2 }}{% endif %},
+                  {{ addr.city }}{% if addr.state %}, {{ addr.state }}{% endif %} – {{ addr.pincode }}
+                  {% if addr.phone %} | {{ addr.phone }}{% endif %}
+                </div>
+              </div>
+              {% endfor %}
+              <div class="saved-addr-card" id="newAddrOption" onclick="selectNewAddress()">
+                <span style="color:var(--primary); font-weight:600; font-size:0.9rem;">+ Use a different address</span>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Address Form -->
+          <div id="addressForm" {% if addresses %}style="display:none;"{% endif %}>
+            <div style="display:flex; flex-direction:column; gap:1rem;">
+              <div class="form-row-2">
+                <div class="field-group">
+                  <label for="addr_first_name">First Name *</label>
+                  <input type="text" id="addr_first_name" name="addr_first_name" class="field-input" required placeholder="Riya" />
+                </div>
+                <div class="field-group">
+                  <label for="addr_last_name">Last Name</label>
+                  <input type="text" id="addr_last_name" name="addr_last_name" class="field-input" placeholder="Sharma" />
+                </div>
+              </div>
+              <div class="field-group">
+                <label for="addr_phone">Phone Number *</label>
+                <input type="tel" id="addr_phone" name="addr_phone" class="field-input" required placeholder="+91 98765 43210" />
+              </div>
+              <div class="field-group">
+                <label for="addr_line1">Address Line 1 *</label>
+                <input type="text" id="addr_line1" name="addr_line1" class="field-input" required placeholder="Flat / House No., Street Name" />
+              </div>
+              <div class="field-group">
+                <label for="addr_line2">Address Line 2</label>
+                <input type="text" id="addr_line2" name="addr_line2" class="field-input" placeholder="Area / Locality (optional)" />
+              </div>
+              <div class="form-row-2">
+                <div class="field-group">
+                  <label for="addr_city">City *</label>
+                  <input type="text" id="addr_city" name="addr_city" class="field-input" required placeholder="Mumbai" />
+                </div>
+                <div class="field-group">
+                  <label for="addr_state">State</label>
+                  <input type="text" id="addr_state" name="addr_state" class="field-input" placeholder="Maharashtra" />
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="field-group">
+                  <label for="addr_pincode">Pincode *</label>
+                  <input type="text" id="addr_pincode" name="addr_pincode" class="field-input" required placeholder="400001" />
+                </div>
+                <div class="field-group">
+                  <label for="addr_country">Country</label>
+                  <input type="text" id="addr_country" name="addr_country" class="field-input" value="India" placeholder="India" />
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:0.75rem;">
+                <input type="checkbox" id="save_address" name="save_address" style="width:16px; height:16px; accent-color:var(--primary);" />
+                <label for="save_address" style="font-size:0.88rem; cursor:pointer; color:var(--text-muted);">Save this address to my account</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment Method -->
+        <div class="glass" style="border-radius:1.5rem; padding:1.75rem;">
+          <h2 style="font-size:1.15rem; font-weight:700; margin-bottom:1.5rem;">Payment Method</h2>
+
+          <div style="display:flex; flex-direction:column; gap:0.875rem;">
+            {% if settings.razorpay_key_id %}
+            <label class="payment-option">
+              <input type="radio" name="payment_method" value="razorpay" checked onchange="toggleOnlineDetails(false)" />
+              <div style="display:flex; align-items:center; gap:0.75rem;">
+                <div style="flex:1;">
+                  <div style="font-weight:700; margin-bottom:0.25rem;">Online Payment (Razorpay)</div>
+                  <div style="font-size:0.85rem; color:var(--text-muted);">Securely pay with Cards, UPI, Wallets or NetBanking.</div>
+                </div>
+              </div>
+            </label>
+            {% endif %}
+
+            {% if cod_enabled %}
+            <label class="payment-option">
+              <input type="radio" name="payment_method" value="cod" {% if not settings.razorpay_key_id %}checked{% endif %} onchange="toggleOnlineDetails(false)" />
+              <div>
+                <div style="font-weight:700; margin-bottom:0.25rem;">Cash on Delivery (COD)</div>
+                <div style="font-size:0.85rem; color:var(--text-muted);">Pay in cash when your order arrives.</div>
+              </div>
+            </label>
+            {% endif %}
+
+            {% if online_enabled %}
+            <label class="payment-option" id="onlinePaymentOption">
+              <input type="radio" name="payment_method" value="online" onchange="toggleOnlineDetails(true)" />
+              <div>
+                <div style="font-weight:700; margin-bottom:0.25rem;">Manual Bank Transfer</div>
+                <div style="font-size:0.85rem; color:var(--text-muted);">Transfer manually to our bank/UPI and share receipt.</div>
+              </div>
+            </label>
+            {% if cod_enabled or settings.razorpay_key_id %}
+            <script>
+              document.querySelectorAll('input[name="payment_method"]').forEach(inp => {
+                if(inp.value !== 'online') inp.addEventListener('change', function(){ toggleOnlineDetails(false); });
+              });
+            </script>
+            {% endif %}
+
+            <div id="onlinePaymentDetails" style="display:none; background:rgba(96,165,250,0.06); border:1px solid rgba(96,165,250,0.2); border-radius:0.875rem; padding:1.25rem; margin-top:0.25rem;">
+              <p style="font-size:0.85rem; font-weight:600; color:var(--primary); margin-bottom:0.875rem;">Payment Details</p>
+              {% if settings.upi_id %}
+              <div style="margin-bottom:0.625rem; font-size:0.9rem;">
+                <span style="color:var(--text-muted);">UPI ID:</span>
+                <span style="font-weight:700; margin-left:0.5rem; font-family:monospace;">{{ settings.upi_id }}</span>
+              </div>
+              {% endif %}
+              {% if settings.bank_name %}
+              <div style="margin-bottom:0.3rem; font-size:0.9rem;"><span style="color:var(--text-muted);">Bank:</span> <span style="font-weight:600; margin-left:0.5rem;">{{ settings.bank_name }}</span></div>
+              {% endif %}
+              {% if settings.bank_account %}
+              <div style="margin-bottom:0.3rem; font-size:0.9rem;"><span style="color:var(--text-muted);">Account No:</span> <span style="font-weight:600; margin-left:0.5rem; font-family:monospace;">{{ settings.bank_account }}</span></div>
+              {% endif %}
+              {% if settings.bank_ifsc %}
+              <div style="font-size:0.9rem;"><span style="color:var(--text-muted);">IFSC:</span> <span style="font-weight:600; margin-left:0.5rem; font-family:monospace;">{{ settings.bank_ifsc }}</span></div>
+              {% endif %}
+              <p style="margin-top:0.875rem; font-size:0.8rem; color:var(--text-muted);">Please transfer the exact amount and mention your name as reference. Your order will be processed after payment confirmation.</p>
+            </div>
+            {% endif %}
+
+            {% if not cod_enabled and not online_enabled %}
+            <div style="padding:1rem; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); border-radius:0.75rem; color:#f87171; font-size:0.9rem;">
+              No payment methods are currently enabled. Please contact us to place your order.
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Order Notes -->
+          <div class="field-group" style="margin-top:1.5rem;">
+            <label for="notes">Order Notes (optional)</label>
+            <textarea id="notes" name="notes" class="field-input" rows="3" placeholder="Any special instructions for your order..." style="resize:vertical;"></textarea>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ══ RIGHT COLUMN: ORDER SUMMARY ══ -->
+      <div style="position:sticky; top:90px;">
+        <div class="glass" style="border-radius:1.5rem; padding:1.75rem;">
+          <h2 style="font-size:1.15rem; font-weight:700; margin-bottom:1.5rem;">Order Summary</h2>
+
+          <div style="margin-bottom:1.5rem;">
+            {% for pid, item in cart.items() %}
+            <div class="cart-summary-item">
+              <div style="width:52px; height:52px; background:white; border-radius:0.5rem; overflow:hidden; flex-shrink:0; display:flex; align-items:center; justify-content:center; padding:0.25rem;">
+                <img src="{{ resolve_image(item.image) }}" alt="{{ item.name }}" style="width:100%; height:100%; object-fit:contain;" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}'" />
+              </div>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:0.875rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ item.name }}</div>
+                <div style="font-size:0.8rem; color:var(--text-muted);">Qty: {{ item.qty }}</div>
+              </div>
+              <div style="font-weight:700; font-size:0.9rem; white-space:nowrap;">₹{{ "%.0f"|format(item.price * item.qty) }}</div>
+            </div>
+            {% endfor %}
+          </div>
+
+          <!-- Totals -->
+          <div style="display:flex; flex-direction:column; gap:0.625rem; padding-top:1rem; border-top:1px solid var(--border-glass);">
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--text-muted);">
+              <span>Subtotal</span>
+              <span style="color:var(--text-main);">₹{{ "%.0f"|format(subtotal) }}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--text-muted);">
+              <span>Shipping</span>
+              <span style="color:{% if shipping == 0 %}#22c55e{% else %}var(--text-main){% endif %};">
+                {% if shipping == 0 %}Free{% else %}₹{{ "%.0f"|format(shipping) }}{% endif %}
+              </span>
+            </div>
+            {% if shipping > 0 %}
+            <p style="font-size:0.78rem; color:var(--text-muted);">Add ₹{{ "%.0f"|format(999 - subtotal) }} more for free shipping</p>
+            {% endif %}
+            <div style="display:flex; justify-content:space-between; font-weight:800; font-size:1.2rem; padding-top:0.75rem; border-top:1px solid var(--border-glass); margin-top:0.25rem;">
+              <span>Total</span>
+              <span style="color:var(--primary);">₹{{ "%.0f"|format(total) }}</span>
+            </div>
+          </div>
+
+          <button type="submit" style="width:100%; margin-top:1.5rem; padding:1.1rem; background:var(--primary); color:white; border:none; border-radius:0.875rem; font-weight:800; font-size:1.05rem; cursor:pointer; transition:opacity 0.2s; letter-spacing:0.02em;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+            Place Order →
+          </button>
+          <a href="{{ url_for('cart.view_cart') }}" style="display:block; text-align:center; margin-top:0.875rem; color:var(--text-muted); font-size:0.875rem;">← Edit Cart</a>
+        </div>
+      </div>
+
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function toggleOnlineDetails(show) {
+    const el = document.getElementById('onlinePaymentDetails');
+    if (el) el.style.display = show ? 'block' : 'none';
+  }
+
+  // Saved address selection
+  const savedAddrFields = {
+    addr_first_name: 'first_name',
+    addr_last_name: 'last_name',
+    addr_phone: 'phone',
+    addr_line1: 'address_line1',
+    addr_line2: 'address_line2',
+    addr_city: 'city',
+    addr_state: 'state',
+    addr_pincode: 'pincode',
+    addr_country: 'country',
+  };
+
+  function selectSavedAddress(cardEl, addrData) {
+    document.querySelectorAll('.saved-addr-card').forEach(c => c.classList.remove('selected'));
+    cardEl.classList.add('selected');
+    // Show address form pre-filled
+    const form = document.getElementById('addressForm');
+    form.style.display = 'block';
+    for (const [fieldId, addrKey] of Object.entries(savedAddrFields)) {
+      const el = document.getElementById(fieldId);
+      if (el) el.value = addrData[addrKey] || '';
+    }
+  }
+
+  function selectNewAddress() {
+    document.querySelectorAll('.saved-addr-card').forEach(c => c.classList.remove('selected'));
+    document.getElementById('newAddrOption').classList.add('selected');
+    const form = document.getElementById('addressForm');
+    form.style.display = 'block';
+    for (const fieldId of Object.keys(savedAddrFields)) {
+      const el = document.getElementById(fieldId);
+      if (el) el.value = fieldId === 'addr_country' ? 'India' : '';
+    }
+  }
+
+  // Auto-select first saved address on load
+  document.addEventListener('DOMContentLoaded', function() {
+    const firstCard = document.querySelector('#savedAddrList .saved-addr-card:not(#newAddrOption)');
+    if (firstCard) {
+      try {
+        const addrData = JSON.parse(firstCard.dataset.addr);
+        selectSavedAddress(firstCard, addrData);
+      } catch(e) {}
+    }
+  });
+</script>
+
+<!-- Razorpay SDK -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+  // Handle Razorpay Payment flow
+  const checkoutForm = document.getElementById('checkoutForm');
+  checkoutForm.addEventListener('submit', async function(e) {
+    const method = document.querySelector('input[name="payment_method"]:checked')?.value;
+    if (method !== 'razorpay') return; // Let default form submission happen for COD/Manual
+    
+    e.preventDefault();
+    
+    // 1. Basic validation
+    if (!checkoutForm.checkValidity()) {
+       checkoutForm.reportValidity();
+       return;
+    }
+
+    // 2. Create Razorpay Order on server
+    try {
+      const resp = await fetch('/razorpay/create_order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+           amount: {{ total }}
+        })
+      });
+      const data = await resp.json();
+      if (!data.success) throw new Error(data.message || 'Failed to create order');
+
+      const options = {
+        key: "{{ settings.razorpay_key_id }}",
+        amount: data.order.amount,
+        currency: "INR",
+        name: "ChasmaGallery",
+        description: "Order Payment",
+        order_id: data.order.id,
+        handler: function (response){
+           // Submit form with payment details
+           const rzpId = document.createElement('input');
+           rzpId.type = 'hidden'; rzpId.name = 'razorpay_payment_id'; rzpId.value = response.razorpay_payment_id;
+           const rzpOrderId = document.createElement('input');
+           rzpOrderId.type = 'hidden'; rzpOrderId.name = 'razorpay_order_id'; rzpOrderId.value = response.razorpay_order_id;
+           const rzpSig = document.createElement('input');
+           rzpSig.type = 'hidden'; rzpSig.name = 'razorpay_signature'; rzpSig.value = response.razorpay_signature;
+           
+           checkoutForm.appendChild(rzpId);
+           checkoutForm.appendChild(rzpOrderId);
+           checkoutForm.appendChild(rzpSig);
+           
+           checkoutForm.submit();
+        },
+        prefill: {
+          name: document.getElementById('addr_first_name').value + ' ' + document.getElementById('addr_last_name').value,
+          contact: document.getElementById('addr_phone').value
+        },
+        theme: { color: "#6366f1" }
+      };
+      const rzp = new Razorpay(options);
+      rzp.open();
+    } catch(err) {
+      alert("Payment Error: " + err.message);
+    }
+  });
+</script>
+{% endblock %}

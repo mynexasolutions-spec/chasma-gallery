@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+
+{% block title %}ChasmaGallery – Eyewear for the Modern Vision{% endblock %}
+
+{% macro product_card(p) %}
+<a href="{{ url_for('public.product_detail', product_id=p.id) }}" class="glass product-card">
+  <div class="card-img-wrap">
+    <img src="{{ resolve_image(p.image_url) }}" alt="{{ p.name }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}'" />
+    {% if p.sale_price and p.sale_price < p.price %}
+    <span class="sale-badge">SALE</span>
+    {% endif %}
+  </div>
+  
+  <div class="card-p-details">
+    <p class="card-cat-label">{{ p.brand_name or p.category_name or 'Collection' }}</p>
+    <h4 class="card-title">{{ p.name }}</h4>
+    
+    <div class="card-price-row">
+      <div class="price-wrap">
+        <span class="current-price">₹{{ "%.0f"|format(p.sale_price or p.price) }}</span>
+        {% if p.sale_price and p.sale_price < p.price %}
+        <span class="old-price">₹{{ "%.0f"|format(p.price) }}</span>
+        {% endif %}
+      </div>
+      <div class="card-action-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      </div>
+    </div>
+  </div>
+</a>
+{% endmacro %}
+
+
+{% block content %}
+
+<!-- HERO SECTION -->
+<section class="hero-section">
+  <div class="hero-slide-item active" style="background-image:url('{{ url_for('static', filename='images/hero/hero1_classic_glasses.jpg') }}');" data-text="Classic &amp; Modern Glasses for Every Face."></div>
+  <div class="hero-slide-item" style="background-image:url('{{ url_for('static', filename='images/hero/hero2_sunglasses.jpg') }}');" data-text="See the World Through Perfect Clarity."></div>
+  <div class="hero-slide-item" style="background-image:url('{{ url_for('static', filename='images/hero/hero1_classic_glasses.jpg') }}');" data-text="Designer Eyewear Collections."></div>
+  <div class="hero-slide-item" style="background-image:url('{{ url_for('static', filename='images/hero/hero2_sunglasses.jpg') }}');" data-text="Step Out in Style."></div>
+  <div class="hero-overlay"></div>
+
+  <button class="hero-arrow-btn hero-arrow-left" id="heroPrev" aria-label="Previous slide">
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+  </button>
+  <button class="hero-arrow-btn hero-arrow-right" id="heroNext" aria-label="Next slide">
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+  </button>
+
+  <div class="hero-content">
+    <h1 id="heroText">Classic &amp; Modern Glasses for Every Face.</h1>
+    <a href="{{ url_for('public.shop') }}" class="glass-btn-professional hero-btn">
+      See Collection
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section-padding section-fade" style="background:var(--bg-glass); border-bottom:1px solid rgba(255,255,255,0.05);">
+  <div class="features-grid">
+    <div class="glass feature-card"><div style="font-size:2.5rem; margin-bottom:1rem;">🚚</div><h3 style="font-size:1.2rem; margin-bottom:0.5rem;">Free Shipping</h3><p style="color:var(--text-muted); font-size:0.95rem;">On all orders over ₹999</p></div>
+    <div class="glass feature-card"><div style="font-size:2.5rem; margin-bottom:1rem;">🔁</div><h3 style="font-size:1.2rem; margin-bottom:0.5rem;">14-Day Returns</h3><p style="color:var(--text-muted); font-size:0.95rem;">Hassle-free return policy</p></div>
+    <div class="glass feature-card"><div style="font-size:2.5rem; margin-bottom:1rem;">🛡️</div><h3 style="font-size:1.2rem; margin-bottom:0.5rem;">1 Year Warranty</h3><p style="color:var(--text-muted); font-size:0.95rem;">On all frames and lenses</p></div>
+    <div class="glass feature-card"><div style="font-size:2.5rem; margin-bottom:1rem;">⚕️</div><h3 style="font-size:1.2rem; margin-bottom:0.5rem;">Certified Opticians</h3><p style="color:var(--text-muted); font-size:0.95rem;">Expert advice available</p></div>
+  </div>
+</section>
+
+<!-- BRANDS -->
+<section class="section-padding section-fade" style="background:var(--accent-light); overflow:hidden;">
+  <h2 style="text-align:center; margin-bottom:3rem;">We sell trusted brands</h2>
+  <div class="brand-overflow">
+    <div class="brand-carousel">
+      <div class="glass brand-item">Ray-Ban</div>
+      <div class="glass brand-item">Oakley</div>
+      <div class="glass brand-item">Gucci</div>
+      <div class="glass brand-item">Prada</div>
+      <div class="glass brand-item">Vogue</div>
+      <div class="glass brand-item">Armani</div>
+      <div class="glass brand-item">IRUS</div>
+      <div class="glass brand-item">Scott</div>
+      <div class="glass brand-item">Sterling</div>
+      <div class="glass brand-item">Ray-Ban</div>
+      <div class="glass brand-item">Oakley</div>
+      <div class="glass brand-item">Gucci</div>
+      <div class="glass brand-item">Prada</div>
+      <div class="glass brand-item">Vogue</div>
+      <div class="glass brand-item">Armani</div>
+      <div class="glass brand-item">IRUS</div>
+      <div class="glass brand-item">Scott</div>
+      <div class="glass brand-item">Sterling</div>
+    </div>
+  </div>
+</section>
+
+<!-- TRENDING SHAPES -->
+<section class="section-padding section-fade" style="background:var(--bg-main);">
+  <h2 style="text-align:center; font-size:2.5rem; margin-bottom:3.5rem;">Trending Shapes</h2>
+  <div class="trending-grid">
+    {% for s in trending_shapes %}
+    <a href="{{ url_for('public.shop', shape=s.label) }}" class="trending-shape">
+      <div class="trending-circle">
+        <img src="{{ resolve_image(s.img) }}" alt="{{ s.label }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}'" />
+      </div>
+      <h4 style="font-weight:700; font-size:1.15rem; color:var(--text-main);">{{ s.label }}</h4>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- SHOP BY CATEGORY -->
+<section class="section-padding section-fade" style="background:rgba(0,0,0,0.3);">
+  <h2 style="text-align:center; font-size:2.5rem; margin-bottom:3rem;">Shop by Category</h2>
+  <div class="product-category-grid">
+    {% for cat in featured_categories %}
+    <a href="{{ url_for('public.shop', category=cat.slug) }}" class="glass category-card">
+      <img src="{{ resolve_image(cat.img) }}" alt="{{ cat.label }}" loading="lazy" onerror="this.style.background='var(--accent-light)'" />
+      <div class="cat-gradient"><h3 style="font-size:1.4rem; margin:0;">{{ cat.label }}</h3></div>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- FEATURED PRODUCTS -->
+<section class="section-padding section-fade" style="padding:2.5rem 0;">
+  <div style="width:100vw; margin-left:calc(50% - 50vw); padding:0;">
+    <div style="display:flex; justify-content:center; align-items:center; margin-bottom:2.5rem; padding:0 1.5rem;">
+      <h2 style="font-size:2.2rem;">Featured Products</h2>
+    </div>
+    <div class="product-track">
+      {% for p in featured %}{{ product_card(p) }}{% else %}
+      <p style="color:var(--text-muted); padding:2rem;">No featured products yet.</p>
+      {% endfor %}
+    </div>
+    <div style="display:flex; justify-content:center; margin:2rem 0;">
+      <a href="{{ url_for('public.shop') }}" style="color:var(--primary); font-weight:600; font-size:1rem;">View All</a>
+    </div>
+  </div>
+</section>
+
+<!-- FREE LENS BANNER -->
+<section class="section-fade" style="padding:0 0 4rem 0;">
+  <div class="free-lens-banner">
+    <div style="position:absolute; top:-30%; left:50%; transform:translateX(-50%); width:600px; height:600px; background:radial-gradient(ellipse, rgba(30,100,200,0.15) 0%, rgba(30,100,200,0.05) 40%, transparent 70%); z-index:0; pointer-events:none;"></div>
+    <div class="free-lens-content">
+      <h2 style="font-weight:900; line-height:1.05; text-transform:uppercase; margin-bottom:0.8rem; display:flex; flex-direction:column; align-items:center;">
+        <span style="display:block; color:#ffffff; font-size:clamp(2.8rem,5.5vw,4.5rem); letter-spacing:6px;">GET YOUR</span>
+        <span style="display:block; color:#ffffff; font-size:clamp(2.8rem,5.5vw,4.5rem); letter-spacing:2px;">LENSES REPLACED</span>
+      </h2>
+      <p style="font-size:1rem; margin-bottom:1.8rem; opacity:0.75; font-weight:500; letter-spacing:2.5px; text-transform:uppercase;">Any Frame | Any Power | Any Brand</p>
+      <a href="{{ url_for('public.contact') }}" class="glass-btn-professional" style="background:transparent; color:white; padding:0.85rem 2.2rem; border-radius:4px; font-weight:700; font-size:0.95rem; border:2px solid rgba(255,255,255,0.85); margin-bottom:1.8rem; letter-spacing:0.5px; display:inline-block;">Contact Now</a>
+      <p style="font-size:0.7rem; opacity:0.45; text-transform:uppercase; letter-spacing:1.5px; line-height:1.4; font-weight:400; max-width:500px;">₹199/- FITTING CHARGES APPLY | APPLICABLE ON PREMIUM ANTI-GLARE LENSES</p>
+    </div>
+  </div>
+</section>
+
+<!-- LATEST RELEASES -->
+<section class="section-padding section-fade" style="padding:2.5rem 0;">
+  <div style="width:100vw; margin-left:calc(50% - 50vw); padding:0;">
+    <div style="display:flex; justify-content:center; align-items:center; margin-bottom:2.5rem; padding:0 1.5rem;">
+      <h2 style="font-size:2.2rem;">Latest Releases</h2>
+    </div>
+    <div class="product-track">
+      {% for p in latest %}{{ product_card(p) }}{% else %}
+      <p style="color:var(--text-muted); padding:2rem;">No products found.</p>
+      {% endfor %}
+    </div>
+    <div style="display:flex; justify-content:center; margin:2rem 0;">
+      <a href="{{ url_for('public.shop') }}" style="color:var(--primary); font-weight:600; font-size:1rem;">View All</a>
+    </div>
+  </div>
+</section>
+
+<!-- PROMO 1: SUNGLASSES -->
+<section class="section-fade" style="padding:0 5% 4rem;">
+  <div class="promo-split-grid" style="max-width:1400px; margin:0 auto; gap:0; background:rgba(255,255,255,0.03); border-radius:1.5rem; overflow:hidden; border:1px solid rgba(255,255,255,0.05); box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+    <div class="promo-grid-left" style="min-height:400px;">
+      <img src="{{ url_for('static', filename='images/sections/promo_sunglasses.jpg') }}" style="width:100%; height:100%; object-fit:cover;" alt="Sunglasses" loading="lazy" onerror="this.style.background='linear-gradient(135deg,#1e3a5f,#2563eb)'; this.style.minHeight='400px';" />
+      <div class="promo-gradient-side"></div>
+    </div>
+    <div style="padding:4rem 3rem; display:flex; flex-direction:column; justify-content:center; background:#0d0d0d;">
+      <h2 style="font-size:clamp(2rem,3vw,2.5rem); font-weight:800; margin-bottom:1rem; line-height:1.2; color:white; text-align:center;">Sunglasses with lenses to suit your taste</h2>
+      <p style="color:#aaaaaa; font-size:1.1rem; margin-bottom:2.5rem; line-height:1.6;">You've found your perfect frame, but you'd like different lenses? No problem! Many of our sunglasses can be fitted with custom lenses. Even without a prescription!</p>
+      <a href="{{ url_for('public.shop', category='sunglasses') }}" class="glass-btn-professional" style="align-self:flex-start; background:#d34a1c !important; color:white; padding:1rem 2.5rem; border-radius:50px; font-weight:bold; font-size:1rem; margin-bottom:3rem; box-shadow:0 4px 15px rgba(211,74,28,0.3); display:inline-block;">Try it now</a>
+      <div class="promo-cards-grid">
+        {% for p in promo1 %}
+        <a href="{{ url_for('public.product_detail', product_id=p.id) }}" class="glass" style="background:rgba(255,255,255,0.05); border-radius:1rem; padding:1.5rem; cursor:pointer; border:1px solid rgba(255,255,255,0.08); text-decoration:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <div style="padding:0.2rem 0.6rem; color:#e0e0e0; background:rgba(255,255,255,0.1); border-radius:4px; font-size:0.75rem; font-weight:bold;">👓 Glazable</div>
+          </div>
+          <div style="height:100px; margin-bottom:1rem; display:flex; align-items:center; justify-content:center; background:white; border-radius:0.5rem; padding:0.5rem;">
+            <img src="{{ resolve_image(p.image_url) }}" style="max-width:100%; max-height:100%; object-fit:contain;" alt="{{ p.name }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}'" />
+          </div>
+          <h4 style="font-size:1rem; font-weight:700; text-align:center; margin-bottom:0.2rem; color:white;">{{ p.category_name or 'Eyewear' }}</h4>
+          <p style="font-size:0.8rem; color:#aaa; text-align:center; margin-bottom:1rem;">{{ p.name[:40] }}</p>
+          <div style="text-align:center; font-weight:bold; color:white; font-size:1.1rem;">₹{{ "%.0f"|format(p.sale_price or p.price) }}</div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- POPULAR FRAMES -->
+<section class="section-padding section-fade" style="padding:2.5rem 0;">
+  <div style="width:100vw; margin-left:calc(50% - 50vw); padding:0;">
+    <div style="display:flex; justify-content:center; align-items:center; margin-bottom:2.5rem; padding:0 1.5rem;">
+      <h2 style="font-size:2.2rem;">Popular Frames</h2>
+    </div>
+    <div class="product-track">
+      {% for p in popular %}{{ product_card(p) }}{% else %}
+      <p style="color:var(--text-muted); padding:2rem;">No products found.</p>
+      {% endfor %}
+    </div>
+    <div style="display:flex; justify-content:center; margin:2rem 0;">
+      <a href="{{ url_for('public.shop') }}" style="color:var(--primary); font-weight:600; font-size:1rem;">View All</a>
+    </div>
+  </div>
+</section>
+
+<!-- PROMO 2: SPORTS EYEWEAR -->
+<section class="section-fade" style="padding:0 5% 4rem;">
+  <div class="promo-split-grid" style="max-width:1400px; margin:0 auto; gap:0; background:rgba(255,255,255,0.03); border-radius:1.5rem; overflow:hidden; border:1px solid rgba(255,255,255,0.05); box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+    <div class="promo-grid-left" style="background:linear-gradient(to bottom, #aaccff, #7baecc); display:flex; align-items:center; justify-content:center; flex-direction:column; padding:4rem 2rem; min-height:400px; position:relative;">
+      <div style="position:absolute; top:2rem; left:2rem; background:#0a4f8f; color:white; padding:1rem; border-radius:50%; width:90px; height:90px; display:flex; align-items:center; justify-content:center; text-align:center; font-size:0.85rem; font-weight:bold; z-index:4; box-shadow:0 10px 20px rgba(0,0,0,0.3);">Only til<br/>15.03.</div>
+      {% if promo2 %}
+      <img src="{{ resolve_image(promo2[0].image_url) }}" style="width:85%; height:auto; object-fit:contain; z-index:2; filter:drop-shadow(0 20px 20px rgba(0,0,0,0.4));" alt="Sports Eyewear" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}'" />
+      {% endif %}
+      <div style="z-index:3; text-align:center; color:white; margin-top:2.5rem; text-shadow:0 2px 5px rgba(0,0,0,0.3);">
+        <p style="font-size:1.4rem; font-weight:500; margin-bottom:0.2rem; letter-spacing:2px;">End of season</p>
+        <h3 style="font-size:clamp(2.5rem,4vw,3.5rem); font-weight:900; line-height:1.1; margin-bottom:0.5rem;">Up to<br/><span style="font-size:1.2em;">50% OFF</span></h3>
+        <p style="letter-spacing:2px; text-transform:uppercase; font-weight:bold;">on Sports Eyewear</p>
+      </div>
+      <div class="promo-gradient-side"></div>
+    </div>
+    <div style="padding:4rem 3rem; display:flex; flex-direction:column; justify-content:center; background:#0d0d0d;">
+      <h2 style="font-size:clamp(2rem,3vw,2.5rem); font-weight:800; margin-bottom:2.5rem; line-height:1.2; color:white; text-align:center;">Big discounts at the end of the season</h2>
+      <a href="{{ url_for('public.shop') }}" class="glass-btn-professional" style="align-self:flex-start; background:#d34a1c !important; color:white; padding:1rem 2.5rem; border-radius:50px; font-weight:bold; font-size:1rem; margin-bottom:3rem; box-shadow:0 4px 15px rgba(211,74,28,0.3); display:inline-block;">Discover all sports eyewear</a>
+      <div class="promo-cards-grid">
+        {% for p in promo2 %}
+        <a href="{{ url_for('public.product_detail', product_id=p.id) }}" class="glass" style="background:rgba(255,255,255,0.05); border-radius:1rem; padding:1.5rem; cursor:pointer; border:1px solid rgba(255,255,255,0.08); text-decoration:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+            <div style="padding:0.2rem 0.6rem; color:#10b981; background:rgba(16,185,129,0.1); border-radius:4px; font-size:0.75rem; font-weight:bold;">🏷️ On Sale</div>
+          </div>
+          <div style="height:100px; margin-bottom:1rem; display:flex; align-items:center; justify-content:center; background:white; border-radius:0.5rem; padding:0.5rem;">
+            <img src="{{ resolve_image(p.image_url) }}" style="max-width:100%; max-height:100%; object-fit:contain;" alt="{{ p.name }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}'" />
+          </div>
+          <h4 style="font-size:1rem; font-weight:700; text-align:center; margin-bottom:0.2rem; color:white;">{{ p.category_name or 'Eyewear' }}</h4>
+          <p style="font-size:0.8rem; color:#aaa; text-align:center; margin-bottom:1rem;">{{ p.name[:40] }}</p>
+          <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem;">
+            <div style="font-weight:bold; color:#d34a1c; font-size:1.1rem;">₹{{ "%.0f"|format(p.sale_price or p.price) }}</div>
+            <div style="text-decoration:line-through; color:#666; font-size:0.8rem;">₹{{ "%.0f"|format(p.price) }}</div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GALLERY SPOTLIGHT -->
+<section class="section-fade" style="background:var(--bg-main); width:100vw; margin-left:calc(50% - 50vw); padding:4rem 0; overflow:hidden;">
+  <h2 style="text-align:center; margin-bottom:3rem; font-size:2.5rem;">Gallery Spotlight</h2>
+  <div class="video-grid">
+    <div class="glass video-card" style="background:var(--accent-light);">
+      <iframe src="https://www.youtube.com/embed/vrKBtuBgXJc?autoplay=1&mute=1&loop=1&playlist=vrKBtuBgXJc&controls=0&showinfo=0&rel=0&iv_load_policy=3&playsinline=1" allow="autoplay; encrypted-media" style="width:100%; height:100%; position:absolute; top:0; left:0;" title="Gallery 1" loading="lazy"></iframe>
+      <div style="position:absolute; inset:0; z-index:1; pointer-events:auto;"></div>
+    </div>
+    <div class="glass video-card" style="background:var(--accent-light);">
+      <iframe src="https://www.youtube.com/embed/nn7jQhVfPEs?autoplay=1&mute=1&loop=1&playlist=nn7jQhVfPEs&controls=0&showinfo=0&rel=0&iv_load_policy=3&playsinline=1" allow="autoplay; encrypted-media" style="width:100%; height:100%; position:absolute; top:0; left:0;" title="Gallery 2" loading="lazy"></iframe>
+      <div style="position:absolute; inset:0; z-index:1; pointer-events:auto;"></div>
+    </div>
+    <div class="glass video-card" style="background:var(--accent-light);">
+      <iframe src="https://www.youtube.com/embed/vrKBtuBgXJc?autoplay=1&mute=1&loop=1&playlist=vrKBtuBgXJc&controls=0&showinfo=0&rel=0&iv_load_policy=3&playsinline=1" allow="autoplay; encrypted-media" style="width:100%; height:100%; position:absolute; top:0; left:0;" title="Gallery 3" loading="lazy"></iframe>
+      <div style="position:absolute; inset:0; z-index:1; pointer-events:auto;"></div>
+    </div>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section class="section-padding section-fade">
+  <h2 style="text-align:center; font-size:2.5rem; margin-bottom:3rem;">What Our Customers Say</h2>
+  <div class="reviews-grid">
+    <div class="glass" style="padding:2rem; border-radius:1.5rem;"><div style="margin-bottom:1rem; color:#fbbf24; font-size:1.1rem;">★★★★★</div><p style="margin-bottom:1.5rem; font-style:italic;">"The clearest vision I've had in years! The frames are stunning."</p><p style="font-weight:700;">Sarah J.</p></div>
+    <div class="glass" style="padding:2rem; border-radius:1.5rem;"><div style="margin-bottom:1rem; color:#fbbf24; font-size:1.1rem;">★★★★★</div><p style="margin-bottom:1.5rem; font-style:italic;">"Amazing collection of sunglasses. Found exactly what I was looking for."</p><p style="font-weight:700;">Michael K.</p></div>
+    <div class="glass" style="padding:2rem; border-radius:1.5rem;"><div style="margin-bottom:1rem; color:#fbbf24; font-size:1.1rem;">★★★★☆</div><p style="margin-bottom:1.5rem; font-style:italic;">"Customer service was top-notch. Highly recommend ChasmaGallery."</p><p style="font-weight:700;">David L.</p></div>
+    <div class="glass" style="padding:2rem; border-radius:1.5rem;"><div style="margin-bottom:1rem; color:#fbbf24; font-size:1.1rem;">★★★★★</div><p style="margin-bottom:1.5rem; font-style:italic;">"Best contact lens prices and quick shipping. My go-to store."</p><p style="font-weight:700;">Emma W.</p></div>
+  </div>
+</section>
+
+<!-- NEWSLETTER -->
+<section class="section-padding section-fade" style="display:flex; justify-content:center;">
+  <div class="glass newsletter-box">
+    <h2 style="font-size:2.5rem; margin-bottom:1rem;">Stay Clear, Stay Stylish</h2>
+    <p style="color:var(--text-muted); margin-bottom:2.5rem;">Subscribe to our newsletter for exclusive offers and vision tips.</p>
+    <form action="#" method="post" style="display:flex; gap:1rem; max-width:500px; margin:0 auto; flex-wrap:wrap; justify-content:center;">
+      <input type="email" name="email" placeholder="Enter your email" class="glass" style="flex:1; padding:1rem 1.5rem; border-radius:1rem; min-width:200px; color:var(--text-main); border:none; outline:none;" />
+      <button type="submit" style="padding:1rem 2rem; background:var(--primary); color:white; border-radius:1rem; font-weight:600; border:none; cursor:pointer; font-size:1rem;">Subscribe</button>
+    </form>
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Product card helper
+  function productCardHtml(p) {
+    const price = p.sale_price ? p.sale_price : p.price;
+    const img = p.image_url || '/static/images/placeholder.png';
+    return `<a href="/product/${p.id}" class="glass product-card" style="text-decoration:none; color:inherit;">
+      <div class="card-img-wrap">
+        <img src="${img}" alt="${p.name}" loading="lazy" onerror="this.src='/static/images/placeholder.png'" />
+      </div>
+      <h4 style="font-size:1.1rem; font-weight:700; margin-bottom:0.3rem;">${p.name}</h4>
+      <p style="color:var(--text-muted); font-size:0.9rem;">${p.category_name || ''}</p>
+      <div class="card-desktop-row">
+        <span style="font-weight:700; font-size:1.1rem;">₹${Math.round(price)}</span>
+        <button class="glass" onclick="event.preventDefault(); addToCart('${p.id}', this)" style="padding:0.5rem 0.8rem; border-radius:0.8rem; background:var(--accent-light); color:var(--primary); font-size:0.8rem; font-weight:bold;">Add</button>
+      </div>
+      <div class="card-mobile-price">
+        <span style="font-weight:800; font-size:1.1rem;">₹${Math.round(price)}</span>
+      </div>
+      <button class="card-view-btn">View</button>
+    </a>`;
+  }
+
+  function addToCart(productId, btn) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/cart/add';
+    form.innerHTML = `<input name="product_id" value="${productId}"><input name="qty" value="1">`;
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  // Hero slider
+  const slides = document.querySelectorAll('.hero-slide-item');
+  const heroText = document.getElementById('heroText');
+  let currentSlide = 0, heroInterval;
+
+  function goToSlide(index) {
+    slides[currentSlide].classList.remove('active');
+    currentSlide = (index + slides.length) % slides.length;
+    slides[currentSlide].classList.add('active');
+    if (heroText) {
+      heroText.style.opacity = '0';
+      heroText.style.transform = 'translateY(20px)';
+      setTimeout(() => {
+        heroText.innerHTML = slides[currentSlide].dataset.text;
+        heroText.style.opacity = '1';
+        heroText.style.transform = 'translateY(0)';
+      }, 300);
+    }
+  }
+  function startHeroAuto() { heroInterval = setInterval(() => goToSlide(currentSlide + 1), 5200); }
+  function resetHeroAuto() { clearInterval(heroInterval); startHeroAuto(); }
+
+  document.getElementById('heroPrev').addEventListener('click', () => { goToSlide(currentSlide - 1); resetHeroAuto(); });
+  document.getElementById('heroNext').addEventListener('click', () => { goToSlide(currentSlide + 1); resetHeroAuto(); });
+  startHeroAuto();
+</script>
+{% endblock %}

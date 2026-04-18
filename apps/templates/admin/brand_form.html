@@ -1,0 +1,46 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'Edit' if brand else 'New' }} Brand – StoreAdmin{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:2rem;">
+  <div style="display:flex; align-items:center; gap:0.5rem; color:var(--admin-text-muted); font-size:0.875rem; margin-bottom:1rem;">
+    <a href="{{ url_for('admin_brands') }}" style="color:var(--admin-primary);">Brands</a>
+    <span>/</span>
+    <span>{{ 'Edit Brand' if brand else 'New Brand' }}</span>
+  </div>
+  <h1 style="font-size:1.5rem; font-weight:700; color:var(--admin-text-main);">{{ 'Edit Brand' if brand else 'Create New Brand' }}</h1>
+</div>
+
+<form method="post" class="admin-card" style="padding:2.5rem; max-width:600px;">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}" />
+
+  <div style="margin-bottom:1.5rem;">
+    <label class="admin-label">Brand Name *</label>
+    <input type="text" name="name" required value="{{ brand.name if brand else '' }}" placeholder="e.g. Ray-Ban" class="admin-input" style="background:#fff;" />
+  </div>
+
+  <div style="margin-bottom:2rem;">
+    <label class="admin-label">Slug</label>
+    <input type="text" name="slug" value="{{ brand.slug if brand else '' }}" placeholder="ray-ban" class="admin-input" style="background:#fff;" />
+  </div>
+
+  <div style="display:flex; gap:1rem; padding-top:1.5rem; border-top:1px solid var(--admin-border);">
+    <button type="submit" class="admin-btn btn-primary" style="padding:0.75rem 2rem;">
+      {{ 'Save Changes' if brand else 'Create Brand' }}
+    </button>
+    <a href="{{ url_for('admin_brands') }}" class="admin-btn btn-outline" style="padding:0.75rem 1.5rem;">Cancel</a>
+  </div>
+</form>
+
+{% block extra_js %}
+<script>
+  document.querySelector('[name="name"]').addEventListener('input', function() {
+    const slugInput = document.querySelector('[name="slug"]');
+    if (!slugInput.value || slugInput.dataset.auto !== 'false') {
+      slugInput.value = this.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      slugInput.dataset.auto = 'true';
+    }
+  });
+</script>
+{% endblock %}
+{% endblock %}

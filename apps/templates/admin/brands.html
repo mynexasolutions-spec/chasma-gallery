@@ -1,0 +1,41 @@
+{% extends "admin/base.html" %}
+{% block title %}Brands – StoreAdmin{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:2rem; display:flex; justify-content:space-between; align-items:center;">
+  <div>
+    <h1 style="font-size:1.5rem; font-weight:700; color:var(--admin-text-main); margin-bottom:0.25rem;">Brands</h1>
+    <p style="color:var(--admin-text-muted); font-size:0.875rem;">Manage the product brands available in your store.</p>
+  </div>
+  <a href="{{ url_for('admin_brand_new') }}" class="admin-btn btn-primary">+ New Brand</a>
+</div>
+
+<div class="admin-table-container">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Slug</th>
+        <th>Products</th>
+        <th style="text-align:right;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in brands %}
+      <tr>
+        <td style="font-weight:600;">{{ b.name }}</td>
+        <td style="color:var(--admin-text-muted); font-family:monospace;">{{ b.slug }}</td>
+        <td><span style="font-weight:600;">{{ b.product_count }}</span> products</td>
+        <td style="text-align:right;">
+          <form action="{{ url_for('admin_brand_delete', brand_id=b.id) }}" method="post" onsubmit="return confirm('Delete this brand?')">
+            <button type="submit" class="admin-btn" style="padding:0.375rem 0.75rem; font-size:0.8125rem; color:#ef4444; background:rgba(239,68,68,0.05);">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" style="text-align:center; padding:3rem; color:var(--admin-text-muted);">No brands found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

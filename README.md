@@ -1,166 +1,62 @@
-# Ecommerce Dashboard — Monorepo
+# ChasmaGallery — E-Commerce Storefront (Flask)
 
-A full-stack ecommerce admin dashboard with a TypeScript Node.js/Express backend and Next.js frontend.
+A sleek, modern, and high-performance e-commerce platform for designer eyewear, built with Python/Flask and PostgreSQL.
+
+## Features
+
+- **Storefront**: High-end visual design with glassmorphism, responsive product grids, and advanced filtering.
+- **Admin Dashboard**: Comprehensive management of products, categories, brands, orders, and attributes.
+- **Dynamic Homepage**: Featured carousels, trending shapes navigation, and shop-by-category sections powered by the CMS.
+- **Variable Products**: Robust support for product variations (e.g., lens power for contacts/eyeglasses).
+- **Glass-Modern UI**: Premium styling using a custom design system in `static/css/chasma.css`.
 
 ## Architecture
 
 ```
-ecommerce-dashboard/
-├── apps/
-│   ├── backend/          # Express + TypeScript API (port 5000)
-│   └── frontend/         # Next.js + Tailwind admin panel (port 3001)
-├── packages/
-│   └── shared-types/     # Shared TypeScript interfaces
-├── API_REFERENCE.md      # Complete API documentation
-└── package.json          # npm workspaces root
+ecom-dashboard/
+└── apps/                  # Primary Flask Application
+    ├── static/            # CSS, Javascript, and Images
+    ├── templates/         # Jinja2 HTML Templates
+    ├── routes/            # Modular Blueprints (Public, Admin, Auth, etc.)
+    ├── app.py             # Main Entry point (Factory pattern)
+    ├── db.py              # Database Connection Pool
+    └── queries.py         # Specialized DB Queries
 ```
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| **Backend** | Node.js, Express, TypeScript |
+| **Core** | Python 3.x, Flask |
 | **Database** | PostgreSQL (Supabase) |
-| **Auth** | JWT (HTTP-only cookies) |
-| **File Storage** | Cloudinary |
-| **Frontend** | Next.js 16 (App Router), Tailwind CSS |
-| **Package Manager** | npm workspaces |
+| **Templating** | Jinja2 |
+| **Styling** | Vanilla CSS (Custom Design System) |
+| **Frontend** | Vanilla JS (Zero dependencies) |
 
 ## Quick Start
 
-### Prerequisites
-- Node.js 18+
-- PostgreSQL database (or Supabase account)
-- Cloudinary account (for image uploads)
-
-### 1. Install dependencies
-```bash
-npm install
-```
-
-### 2. Configure environment
-Copy the env template and fill in your values:
-```bash
-cp apps/backend/.env.example apps/backend/.env
-```
-
-Required environment variables:
+### 1. Configure environment
+Ensure you have a `.env` file in `apps/` with your Supabase credentials:
 ```env
-PORT=5000
-NODE_ENV=development
-DATABASE_URL=postgresql://user:password@host:5432/dbname
-JWT_SECRET=your_secret_key
-JWT_EXPIRES_IN=1h
-FRONTEND_URL=http://localhost:3001
-CLOUDINARY_CLOUD_NAME=your_cloud
-CLOUDINARY_API_KEY=your_key
-CLOUDINARY_API_SECRET=your_secret
+DB_URL=postgresql://user:password@host:5432/dbname
 ```
 
-### 3. Seed the database
-Run the seed file against your PostgreSQL database:
+### 2. Start development server
 ```bash
-psql -U postgres -d your_db -f apps/backend/seed.sql
-```
-Or via Supabase SQL editor: paste the contents of `apps/backend/seed.sql`.
-
-### 4. Start development servers
-
-**Terminal 1 — Backend:**
-```bash
-cd apps/backend
-npm run dev
+cd apps
+python app.py
 ```
 
-**Terminal 2 — Frontend:**
-```bash
-cd apps/frontend
-npm run dev
-```
+### 3. Access the app
+- **Storefront:** http://127.0.0.1:5001/
+- **Admin Dashboard:** http://127.0.0.1:5001/admin
 
-### 5. Access the app
-- **Storefront (Public):** http://localhost:3001/
-- **Admin Dashboard:** http://localhost:3001/admin/login
-- **Backend API API Health:** http://localhost:5000/api/health
+## Admin Access
+Access the administrative panel via `/admin`. Ensure your user has `admin` role in the database.
 
-### Default Admin Credentials
-```
-Email:    admin@store.com
-Password: Admin@1234
-```
-
-## API Documentation
-
-See [API_REFERENCE.md](./API_REFERENCE.md) for the complete API reference with all endpoints, request/response formats, and authentication requirements.
-
-## Backend Structure
-
-```
-apps/backend/src/
-├── config/
-│   ├── db.ts              # PostgreSQL pool
-│   └── cloudinary.ts      # Cloudinary config
-├── controllers/
-│   ├── authController.ts
-│   ├── productsController.ts
-│   ├── productDetailsController.ts  # Images + Variations
-│   ├── categoriesController.ts
-│   ├── brandsController.ts
-│   ├── ordersController.ts
-│   ├── usersController.ts
-│   ├── attributesController.ts
-│   ├── couponsController.ts
-│   ├── reviewsController.ts
-│   ├── settingsController.ts
-│   ├── statsController.ts
-│   ├── shopController.ts
-│   └── paymentController.ts
-├── middleware/
-│   ├── auth.ts            # JWT auth + role-based authorization
-│   ├── upload.ts          # Multer file upload
-│   └── errorHandler.ts    # Global error handler
-├── routes/                # Express route definitions
-└── server.ts              # App entry point
-```
-
-## User Roles
-
-| Role | Access |
-|------|--------|
-| `admin` | Full access to everything |
-| `manager` | Read/write access to products, orders, reviews |
-| `customer` | Can view own orders, write reviews |
-
-## Database Schema
-
-The database includes the following tables:
-- `users`, `user_addresses`
-- `categories`, `brands`
-- `products`, `product_images`, `product_variations`
-- `attributes`, `attribute_values`, `variation_attribute_values`
-- `orders`, `order_items`, `payments`
-- `reviews`, `coupons`, `coupon_usages`
-- `carts`, `cart_items`
-- `media`, `settings`
-
-See `apps/backend/seed.sql` for the full schema and sample data.
-
-## Testing
-
-The backend includes a comprehensive Jest + Supertest integration test suite.
-
-```bash
-cd apps/backend
-npm run test
-```
-
-## Type Checking
-
-```bash
-cd apps/backend
-npx tsc --noEmit   # Should output 0 errors
-```
-
-## License
-
-ISC
+## Professional CSS
+The site uses a custom design system defined in `apps/flask/static/css/chasma.css`. It features:
+- Glassmorphism effects
+- Modern typography (Outfit / Inter)
+- Dynamic micro-animations
+- Mobile-first responsiveness

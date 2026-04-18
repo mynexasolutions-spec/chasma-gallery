@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Cart – ChasmaGallery{% endblock %}
+
+{% block content %}
+<div style="padding:2rem 2% 4rem; max-width:1100px; margin:0 auto;">
+  <h1 style="font-size:2.2rem; margin-bottom:2rem;">Shopping Cart</h1>
+
+  {% if cart_items %}
+  <div class="cart-main-grid">
+
+    <!-- CART ITEMS -->
+    <div style="display:flex; flex-direction:column; gap:1rem;">
+      <form action="{{ url_for('cart.cart_update') }}" method="post" id="updateForm">
+        {% for pid, item in cart_items.items() %}
+        <div class="glass cart-item-row">
+          <!-- Image -->
+          <div style="background:white; border-radius:0.75rem; overflow:hidden; height:80px; display:flex; align-items:center; justify-content:center; padding:0.5rem; flex-shrink:0; width:80px;">
+            <img src="{{ resolve_image(item.image) }}" alt="{{ item.name }}" style="width:100%; height:100%; object-fit:contain;" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}'" />
+          </div>
+          <!-- Details -->
+          <div style="flex:1;">
+            <h4 style="font-size:1rem; font-weight:700; margin-bottom:0.25rem; color:white;">{{ item.name }}</h4>
+            {% if item.sku %}<p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:0.5rem;">SKU: {{ item.sku }}</p>{% endif %}
+            <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; border:1px solid var(--border-glass); border-radius:0.5rem; overflow:hidden; background:rgba(0,0,0,0.2);">
+                <button type="button" onclick="changeQty('{{ pid }}', -1)" style="padding:0.4rem 0.8rem; background:rgba(255,255,255,0.05); border:none; color:white; cursor:pointer; font-weight:bold;">−</button>
+                <input type="number" name="qty_{{ pid }}" id="qty_{{ pid }}" value="{{ item.qty }}" min="0" 
+                       style="width:50px; text-align:center; background:transparent; border:none; color:white; font-size:1rem; font-weight:600; outline:none; -moz-appearance: textfield; appearance: none;" />
+                <button type="button" onclick="changeQty('{{ pid }}', 1)" style="padding:0.4rem 0.8rem; background:rgba(255,255,255,0.05); border:none; color:white; cursor:pointer; font-weight:bold;">+</button>
+              </div>
+              <span style="color:var(--text-muted); font-size:0.9rem; font-weight:500;">× ₹{{ "%.0f"|format(item.price) }}</span>
+            </div>
+          </div>
+          <!-- Price + Remove -->
+          <div class="cart-price-col" style="display:flex; flex-direction:column; align-items:flex-end; gap:0.75rem; min-width:100px;">
+            <span style="font-weight:700; font-size:1.15rem; color:var(--primary);">₹{{ "%.0f"|format(item.price * item.qty) }}</span>
+            <button type="button" onclick="removeItem('{{ pid }}')" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:0.85rem; font-weight:600; padding:0.25rem; transition:0.2s;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Remove</button>
+          </div>
+        </div>
+        {% endfor %}
+
+        <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:1.5rem;">
+          <button type="submit" style="padding:0.85rem 1.8rem; background:rgba(255,255,255,0.08); border:1px solid var(--border-glass); color:white; border-radius:0.75rem; font-weight:700; cursor:pointer; font-size:0.95rem; transition:0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">Update Cart</button>
+        </div>
+      </form>
+
+      <!-- Hidden Removal Form (Outside main form to prevent nesting issues) -->
+      <form id="removeForm" action="{{ url_for('cart.cart_remove') }}" method="post" style="display:none;">
+          <input type="hidden" name="product_id" id="removePid" value="" />
+      </form>
+    </div>
+
+    <!-- ORDER SUMMARY -->
+    <div class="glass" style="border-radius:1.5rem; padding:1.75rem; position:sticky; top:90px;">
+      <h3 style="font-size:1.3rem; margin-bottom:1.5rem;">Order Summary</h3>
+      <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.5rem;">
+        <div style="display:flex; justify-content:space-between; color:var(--text-muted);">
+          <span>Subtotal</span>
+          <span style="color:var(--text-main);">₹{{ "%.0f"|format(subtotal) }}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; color:var(--text-muted);">
+          <span>Shipping</span>
+          <span style="color:{% if shipping == 0 %}#22c55e{% else %}var(--text-main){% endif %};">
+            {% if shipping == 0 %}Free{% else %}₹{{ "%.0f"|format(shipping) }}{% endif %}
+          </span>
+        </div>
+        {% if shipping > 0 %}
+        <p style="font-size:0.8rem; color:var(--text-muted);">Add ₹{{ "%.0f"|format(999 - subtotal) }} more for free shipping</p>
+        {% endif %}
+        <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:0.75rem; display:flex; justify-content:space-between; font-weight:700; font-size:1.1rem;">
+          <span>Total</span>
+          <span style="color:var(--primary);">₹{{ "%.0f"|format(total) }}</span>
+        </div>
+      </div>
+      <a href="{{ url_for('checkout.checkout') }}" style="display:block; width:100%; padding:1rem; background:var(--primary); color:white; text-align:center; border-radius:0.75rem; font-weight:700; font-size:1rem; text-decoration:none;">Proceed to Checkout →</a>
+      <a href="{{ url_for('public.shop') }}" style="display:block; text-align:center; margin-top:0.75rem; color:var(--text-muted); font-size:0.9rem;">← Continue Shopping</a>
+    </div>
+  </div>
+
+  {% else %}
+  <div class="glass" style="padding:4rem; border-radius:1.5rem; text-align:center;">
+    <div style="font-size:4rem; margin-bottom:1.5rem;">🛒</div>
+    <h2 style="margin-bottom:1rem;">Your cart is empty</h2>
+    <p style="color:var(--text-muted); margin-bottom:2rem;">Looks like you haven't added anything yet.</p>
+    <a href="{{ url_for('public.shop') }}" style="display:inline-block; padding:1rem 2.5rem; background:var(--primary); color:white; border-radius:0.75rem; font-weight:700; text-decoration:none;">Start Shopping</a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function changeQty(pid, delta) {
+    const inp = document.getElementById('qty_' + pid);
+    inp.value = Math.max(0, parseInt(inp.value) + delta);
+    // Submit the updateForm automatically to reflect changes immediately if you prefer, 
+    // or just leave it for the user to click "Update Cart".
+  }
+
+  function removeItem(pid) {
+    if (confirm('Are you sure you want to remove this item?')) {
+      document.getElementById('removePid').value = pid;
+      document.getElementById('removeForm').submit();
+    }
+  }
+</script>
+<style>
+  /* Hide spin buttons for cleaner quantity input */
+  input[type=number]::-webkit-inner-spin-button, 
+  input[type=number]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+  }
+</style>
+{% endblock %}

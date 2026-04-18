@@ -1,7 +1,0 @@
-# Terminal 1 — Backend
-cd apps/backend
-npm run dev          # → http://localhost:5000
-
-# Terminal 2 — Frontend  
-cd apps/frontend
-npm run dev          # → http://localhost:3001

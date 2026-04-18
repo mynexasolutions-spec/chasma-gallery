@@ -1,0 +1,233 @@
+{% extends "admin/base.html" %}
+{% block title %}{{ 'Edit' if action == 'edit' else 'New' }} Product – StoreAdmin{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:2rem;">
+  <div style="display:flex; align-items:center; gap:0.5rem; color:var(--admin-text-muted); font-size:0.875rem; margin-bottom:1rem;">
+    <a href="{{ url_for('admin_products') }}" style="color:var(--admin-primary);">Products</a>
+    <span>/</span>
+    <span>{{ 'Edit Product' if action == 'edit' else 'New Product' }}</span>
+  </div>
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1 style="font-size:1.5rem; font-weight:700; color:var(--admin-text-main);">{{ 'Edit Product' if action == 'edit' else 'Create New Product' }}</h1>
+    {% if action == 'edit' and product.type == 'variable' %}
+    <a href="{{ url_for('admin_product_variations', product_id=product.id) }}" class="admin-btn btn-primary">Manage Variations</a>
+    {% endif %}
+  </div>
+</div>
+
+<form method="post" class="admin-card" style="padding:2.5rem; max-width:1000px;">
+  <input type="hidden" name="_csrf" value="{{ csrf_token() }}" />
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+    <div style="grid-column:1/-1;">
+      <label class="admin-label">Product Name *</label>
+      <input type="text" name="name" required value="{{ product.name if product else '' }}" placeholder="e.g. Ray-Ban Aviator Classic" class="admin-input" />
+    </div>
+    <div>
+      <label class="admin-label">Slug (URL Identifier)</label>
+      <input type="text" name="slug" value="{{ product.slug if product else '' }}" placeholder="ray-ban-aviator" class="admin-input" />
+    </div>
+    <div>
+      <label class="admin-label">SKU (Stock Keeping Unit)</label>
+      <input type="text" name="sku" value="{{ product.sku if product else '' }}" placeholder="RB3025-001-58" class="admin-input" />
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+    <div>
+      <label class="admin-label">Product Type</label>
+      <select name="type" class="admin-input" onchange="toggleVariableFields(this.value)">
+        <option value="simple" {% if product and product.type == 'simple' %}selected{% endif %}>Simple Product</option>
+        <option value="variable" {% if product and product.type == 'variable' %}selected{% endif %}>Variable Product</option>
+      </select>
+    </div>
+    <div>
+      <label class="admin-label">Category</label>
+      <select name="category_id" class="admin-input">
+        <option value="">— No Category —</option>
+        {% for c in categories %}
+        <option value="{{ c.id }}" {% if product and product.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="admin-label">Brand</label>
+      <select name="brand_id" class="admin-input">
+        <option value="">— No Brand —</option>
+        {% for b in brands %}
+        <option value="{{ b.id }}" {% if product and product.brand_id == b.id %}selected{% endif %}>{{ b.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <!-- Variable Attributes Section -->
+  <div id="attributesSection" style="margin-bottom:2rem; padding:1.5rem; background:#f8fafc; border:1px dashed var(--admin-border); border-radius:1rem; {% if not product or product.type != 'variable' %}display:none;{% endif %}">
+    <h3 style="font-size:0.875rem; font-weight:700; margin-bottom:1rem; color:var(--admin-text-main);">Product Attributes</h3>
+    <p style="font-size:0.8125rem; color:var(--admin-text-muted); margin-bottom:1.5rem;">Select attributes and specific values that define this product's variations.</p>
+    
+    <div style="display:flex; flex-direction:column; gap:1.25rem;">
+      {% for attr in all_attributes %}
+      <div style="background:white; padding:1.25rem; border-radius:0.875rem; border:1px solid var(--admin-border);">
+        <label style="display:flex; align-items:center; gap:0.75rem; cursor:pointer; margin-bottom:1rem;">
+          <input type="checkbox" name="attribute_ids" value="{{ attr.id }}" 
+                 {% if product_attribute_ids and attr.id in product_attribute_ids %}checked{% endif %} 
+                 onchange="toggleAttrValues('{{ attr.id }}', this.checked)"
+                 style="width:18px; height:18px; accent-color:var(--admin-primary);">
+          <span style="font-size:0.95rem; font-weight:700; color:var(--admin-text-main);">{{ attr.name }}</span>
+        </label>
+        
+        <div id="values_{{ attr.id }}" style="display: {% if product_attribute_ids and attr.id in product_attribute_ids %}flex{% else %}none{% endif %}; flex-wrap:wrap; gap:0.625rem; padding-left:1.75rem;">
+          {% if attr.options %}
+            {% for val in attr.options %}
+            <label style="display:flex; align-items:center; gap:0.5rem; padding:0.4rem 1rem; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:999px; font-size:0.85rem; cursor:pointer; transition:0.2s;" class="attr-val-pill">
+              <input type="checkbox" name="attribute_value_ids" value="{{ val.id }}" 
+                     {% if selected_value_ids and val.id in selected_value_ids %}checked{% endif %} 
+                     style="width:14px; height:14px; accent-color:var(--admin-primary);">
+              <span>{{ val.value }}</span>
+            </label>
+            {% endfor %}
+          {% else %}
+            <p style="font-size:0.8rem; color:var(--admin-text-muted); font-style:italic;">No values defined for this attribute.</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% if action == 'edit' and product.type == 'variable' %}
+    <div style="margin-top:2rem; padding-top:1rem; border-top:1px solid var(--admin-border);">
+      <a href="{{ url_for('admin_product_variations', product_id=product.id) }}" class="admin-btn btn-primary" style="font-size:0.875rem; background:rgba(99,102,241,0.1); color:var(--admin-primary); border:1px solid var(--admin-primary);">
+        Manage Variations List →
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div id="priceStockFields" {% if product and product.type == 'variable' %}style="display:none;"{% endif %}>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+      <div>
+        <label class="admin-label">Regular Price (₹) *</label>
+        <input type="number" step="0.01" min="0" name="price" value="{{ product.price if product else '' }}" class="admin-input" />
+      </div>
+      <div>
+        <label class="admin-label">Sale Price (₹)</label>
+        <input type="number" step="0.01" min="0" name="sale_price" value="{{ product.sale_price if product and product.sale_price else '' }}" class="admin-input" />
+      </div>
+      <div>
+        <label class="admin-label">Stock Quantity</label>
+        <input type="number" min="0" name="stock_quantity" value="{{ product.stock_quantity if product else 0 }}" class="admin-input" />
+      </div>
+    </div>
+  </div>
+
+  <div style="grid-column:1/-1; margin-bottom:1.5rem;">
+    <label class="admin-label">Stock Status</label>
+    <select name="stock_status" class="admin-input">
+      {% for s in ['in_stock','out_of_stock','on_backorder'] %}
+      <option value="{{ s }}" {% if product and product.stock_status == s %}selected{% endif %}>{{ s.replace('_',' ').title() }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div style="margin-bottom:1.5rem;">
+    <label class="admin-label">Primary Image URL</label>
+    <input type="url" name="image_url" value="{{ product.image_url if product and product.image_url else '' }}" placeholder="https://..." class="admin-input" />
+  </div>
+
+  <div style="margin-bottom:1.5rem;">
+    <label class="admin-label">Short Description</label>
+    <textarea name="short_description" rows="2" class="admin-input" style="resize:vertical;">{{ product.short_description if product else '' }}</textarea>
+  </div>
+  <div style="margin-bottom:2rem;">
+    <label class="admin-label">Full Description</label>
+    <textarea name="description" rows="6" class="admin-input" style="resize:vertical;">{{ product.description if product else '' }}</textarea>
+  </div>
+
+  <div style="display:flex; gap:2rem; margin-bottom:2.5rem; padding:1.25rem; background:#f8fafc; border-radius:1rem;">
+    <label style="display:flex; align-items:center; gap:0.625rem; cursor:pointer; font-weight:600; font-size:0.875rem;">
+      <input type="checkbox" name="is_featured" {% if product and product.is_featured %}checked{% endif %} style="accent-color:var(--admin-primary); width:18px; height:18px;" />
+      Featured Product
+    </label>
+    <label style="display:flex; align-items:center; gap:0.625rem; cursor:pointer; font-weight:600; font-size:0.875rem;">
+      <input type="checkbox" name="is_active" {% if not product or product.is_active %}checked{% endif %} style="accent-color:var(--admin-primary); width:18px; height:18px;" />
+      Active (Live in Store)
+    </label>
+  </div>
+
+  <div style="display:flex; gap:1rem; padding-top:1.5rem; border-top:1px solid var(--admin-border);">
+    <button type="submit" class="admin-btn btn-primary" style="padding:0.75rem 2.5rem; font-size:1rem;">
+      {{ 'Save Changes' if action == 'edit' else 'Create Product' }}
+    </button>
+    <a href="{{ url_for('admin_products') }}" class="admin-btn btn-outline" style="padding:0.75rem 1.5rem;">Cancel</a>
+  </div>
+</form>
+
+{% block extra_js %}
+<script>
+  function toggleAttrValues(attrId, checked) {
+    const valSection = document.getElementById('values_' + attrId);
+    if (!valSection) return;
+    
+    if (checked) {
+      valSection.style.display = 'flex';
+    } else {
+      valSection.style.display = 'none';
+      valSection.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked = false);
+    }
+  }
+
+  function toggleVariableFields(type) {
+    const attrSection = document.getElementById('attributesSection');
+    const priceSection = document.getElementById('priceStockFields');
+    if (type === 'variable') {
+      attrSection.style.display = 'block';
+      priceSection.style.display = 'none';
+    } else {
+      attrSection.style.display = 'none';
+      priceSection.style.display = 'block';
+    }
+  }
+
+  // Auto-generate slug from name
+  document.querySelector('[name="name"]').addEventListener('input', function() {
+    const slugInput = document.querySelector('[name="slug"]');
+    if (!slugInput.value || slugInput.dataset.auto !== 'false') {
+      slugInput.value = this.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      slugInput.dataset.auto = 'true';
+    }
+  });
+
+  // Handle active states for pills
+  document.addEventListener('change', function(e) {
+    if (e.target.name === 'attribute_value_ids') {
+      const parent = e.target.closest('.attr-val-pill');
+      if (parent) {
+        if (e.target.checked) {
+          parent.style.background = 'var(--admin-primary)';
+          parent.style.color = 'white';
+          parent.style.borderColor = 'var(--admin-primary)';
+        } else {
+          parent.style.background = '#f1f5f9';
+          parent.style.color = 'inherit';
+          parent.style.borderColor = '#e2e8f0';
+        }
+      }
+    }
+  });
+
+  // Init pill states on load
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[name="attribute_value_ids"]:checked').forEach(i => {
+       const parent = i.closest('.attr-val-pill');
+       if (parent) {
+         parent.style.background = 'var(--admin-primary)';
+         parent.style.color = 'white';
+         parent.style.borderColor = 'var(--admin-primary)';
+       }
+    });
+  });
+</script>
+{% endblock %}
+{% endblock %}
