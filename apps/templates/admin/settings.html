@@ -69,7 +69,7 @@
                style="width:100%; max-width:400px; padding:0.75rem 1rem; border:1px solid var(--admin-border); border-radius:0.5rem; background:var(--admin-bg); color:var(--admin-text); font-size:0.9rem; outline:none; font-family:monospace; box-sizing:border-box;" />
       </div>
 
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; max-width:600px;">
+      <div class="admin-grid-2" style="gap:1rem; max-width:600px;">
         <div>
           <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--admin-text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;" for="bank_name">Bank Name</label>
           <input type="text" id="bank_name" name="bank_name" value="{{ settings.bank_name or '' }}"
@@ -100,7 +100,7 @@
       <p style="font-size:0.82rem; color:var(--admin-text-muted); margin-top:0.2rem;">Enable automated payments via Razorpay</p>
     </div>
     <div style="padding:1.5rem; display:flex; flex-direction:column; gap:1.25rem;">
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; max-width:800px;">
+      <div class="admin-grid-2" style="gap:1rem; max-width:800px;">
         <div>
           <label style="display:block; font-size:0.82rem; font-weight:600; color:var(--admin-text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;" for="razorpay_key_id">Razorpay Key ID</label>
           <input type="text" id="razorpay_key_id" name="razorpay_key_id" value="{{ settings.razorpay_key_id or '' }}"

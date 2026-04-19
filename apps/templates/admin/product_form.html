@@ -8,7 +8,7 @@
     <span>/</span>
     <span>{{ 'Edit Product' if action == 'edit' else 'New Product' }}</span>
   </div>
-  <div style="display:flex; justify-content:space-between; align-items:center;">
+  <div class="admin-page-header" style="margin-bottom:0;">
     <h1 style="font-size:1.5rem; font-weight:700; color:var(--admin-text-main);">{{ 'Edit Product' if action == 'edit' else 'Create New Product' }}</h1>
     {% if action == 'edit' and product.type == 'variable' %}
     <a href="{{ url_for('admin_product_variations', product_id=product.id) }}" class="admin-btn btn-primary">Manage Variations</a>
@@ -19,7 +19,7 @@
 <form method="post" class="admin-card" style="padding:2.5rem; max-width:1000px;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+  <div class="admin-grid-2" style="margin-bottom:1.5rem;">
     <div style="grid-column:1/-1;">
       <label class="admin-label">Product Name *</label>
       <input type="text" name="name" required value="{{ product.name if product else '' }}" placeholder="e.g. Ray-Ban Aviator Classic" class="admin-input" />
@@ -34,7 +34,7 @@
     </div>
   </div>
 
-  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+  <div class="admin-grid-3" style="margin-bottom:1.5rem;">
     <div>
       <label class="admin-label">Product Type</label>
       <select name="type" class="admin-input" onchange="toggleVariableFields(this.value)">
@@ -106,7 +106,7 @@
   </div>
 
   <div id="priceStockFields" {% if product and product.type == 'variable' %}style="display:none;"{% endif %}>
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+    <div class="admin-grid-3" style="margin-bottom:1.5rem;">
       <div>
         <label class="admin-label">Regular Price (₹) *</label>
         <input type="number" step="0.01" min="0" name="price" value="{{ product.price if product else '' }}" class="admin-input" />

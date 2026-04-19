@@ -14,7 +14,7 @@
   <p style="color:var(--admin-text-muted); font-size:0.875rem;">Create specific price and stock levels for combinations of attributes.</p>
 </div>
 
-<div style="display:grid; grid-template-columns:1fr 2fr; gap:2rem; align-items: flex-start;">
+<div class="admin-grid-order" style="align-items:flex-start;">
   
   <!-- Add Variation Form -->
   <div class="admin-card">
@@ -29,7 +29,7 @@
         <input type="text" name="sku" required placeholder="e.g. {{ product.name[:3]|upper }}-VAR1" class="admin-input" />
       </div>
 
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
+      <div class="admin-grid-2" style="gap:1rem; margin-bottom:1.5rem;">
         <div>
           <label class="admin-label">Price (₹) *</label>
           <input type="number" step="0.01" name="price" required class="admin-input" />

@@ -12,7 +12,7 @@
   <p style="color:var(--admin-text-muted); font-size:0.875rem;">Upload a WooCommerce-format CSV to bulk-import products to your store.</p>
 </div>
 
-<div style="display:grid; grid-template-columns:1.5fr 1fr; gap:1.5rem;">
+<div class="admin-grid-dash">
   
   <div>
     <form method="post" enctype="multipart/form-data" class="admin-card" style="padding:2.5rem; text-align:center;">
@@ -37,7 +37,7 @@
     {% if results %}
     <div class="admin-card" style="margin-top:1.5rem; padding:2rem;">
       <h3 style="font-size:1rem; font-weight:700; margin-bottom:1.5rem;">Import Results Summary</h3>
-      <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1rem;">
+      <div class="admin-grid-3" style="gap:1rem;">
         <div style="padding:1.5rem; background:#f0fdf4; border-radius:0.75rem; border:1px solid #bbf7d0; text-align:center;">
           <div style="font-size:1.75rem; font-weight:800; color:#166534;">{{ results.imported }}</div>
           <div style="font-size:0.75rem; color:#166534; font-weight:600; text-transform:uppercase;">Success</div>
