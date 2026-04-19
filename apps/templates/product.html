@@ -87,7 +87,7 @@
                   style="width:100%; padding:0.875rem 1rem; background:rgba(15,23,42,0.9); border:1px solid var(--border-glass); border-radius:0.75rem; color:var(--text-main); font-size:0.95rem; outline:none;" 
                   onchange="updateVariation()">
             <option value="">Choose an option</option>
-            {% for val in attr.values %}
+            {% for val in attr['values'] %}
             <option value="{{ val.id }}">{{ val.value }}</option>
             {% endfor %}
           </select>
@@ -178,7 +178,7 @@
             <h3 style="font-size:1.05rem; font-weight:700; margin-bottom:1.25rem;">Write a Review</h3>
             {% if "user" in session %}
                 <form method="POST" action="{{ url_for('checkout.submit_review', product_id=product.id) }}">
-                    <input type="hidden" name="_csrf" value="{{ csrf_token() }}" />
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                     <div style="margin-bottom:1.25rem;">
                         <label style="display:block; font-size:0.82rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.6rem;">Your Rating *</label>
                         <div style="display:flex; gap:0.5rem;" id="starRatingGroup">

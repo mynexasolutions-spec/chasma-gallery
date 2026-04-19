@@ -10,7 +10,7 @@
 </div>
 
 <form method="POST" action="{{ url_for('admin_settings') }}">
-  <input type="hidden" name="_csrf" value="{{ csrf_token() }}" />
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
   <!-- Payment Methods -->
   <div class="admin-card" style="margin-bottom:1.5rem;">

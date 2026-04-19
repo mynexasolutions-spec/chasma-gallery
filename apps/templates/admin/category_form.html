@@ -12,7 +12,7 @@
 </div>
 
 <form method="post" class="admin-card" style="padding:2.5rem; max-width:600px;">
-  <input type="hidden" name="_csrf" value="{{ csrf_token() }}" />
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
   <div style="margin-bottom:1.5rem;">
     <label class="admin-label">Name *</label>

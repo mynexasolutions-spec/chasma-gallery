@@ -7,20 +7,39 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from extensions import csrf, limiter
+from extensions import csrf, limiter, handle_csrf_error
 from helpers import register_jinja
 import db
 
 
 def create_app():
     app = Flask(__name__)
-    app.secret_key = os.getenv("SECRET_KEY", "change-me-in-production")
+    app.secret_key = os.getenv("SECRET_KEY", "dev-key-change-in-production")
+    
+    # Session configuration
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-
+    app.config["SESSION_COOKIE_SECURE"] = False
+    app.config["PERMANENT_SESSION_LIFETIME"] = 86400
+    
+    # CSRF configuration
+    app.config["WTF_CSRF_TIME_LIMIT"] = None
+    app.config["WTF_CSRF_CHECK_DEFAULT"] = True
+    
+    # Initialize extensions
     csrf.init_app(app)
     limiter.init_app(app)
+    
+    # Register CSRF error handler
+    app.register_error_handler(400, handle_csrf_error)
+    
+    # Register Jinja2 helpers and globals
     register_jinja(app)
+    
+    # Session initialization - ensure session exists for CSRF token
+    @app.before_request
+    def ensure_session():
+        session.setdefault('_csrf_initialized', True)
 
     @app.context_processor
     def inject_globals():
@@ -62,6 +81,6 @@ except Exception as _e:
     print(f"[db.migrate] {_e}")
 
 if __name__ == "__main__":
-    port  = int(os.getenv("PORT", 6000))
+    port  = int(os.getenv("PORT", 5001))
     debug = os.getenv("FLASK_ENV", "development") != "production"
     app.run(debug=debug, port=port, host="0.0.0.0")

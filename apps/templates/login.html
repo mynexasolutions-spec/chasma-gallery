@@ -9,7 +9,7 @@
     <p style="text-align:center; color:var(--text-muted); margin-bottom:2rem; font-size:0.95rem;">Sign in to your account</p>
 
     <form method="post" action="{{ url_for('auth.login', next=request.args.get('next', '')) }}" novalidate>
-      <input type="hidden" name="_csrf" value="{{ csrf_token() }}" />
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
       <div style="margin-bottom:1.25rem;">
         <label style="display:block; font-weight:600; margin-bottom:0.5rem; font-size:0.9rem; color:var(--text-muted);">Email</label>

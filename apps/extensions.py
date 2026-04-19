@@ -9,3 +9,8 @@ limiter = Limiter(
     default_limits=["500 per day", "100 per hour"],
     storage_uri="memory://",
 )
+
+
+# Optional: Custom CSRF error handler can be added here if needed
+def handle_csrf_error(e):
+    return f"CSRF validation failed: {e.description}", 400

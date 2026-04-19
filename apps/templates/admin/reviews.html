@@ -71,7 +71,7 @@
             <div style="display:flex; gap:0.5rem; justify-content:center; flex-wrap:wrap;">
               {% if not review.is_approved %}
               <form method="POST" action="{{ url_for('admin_review_approve', review_id=review.id) }}">
-                <input type="hidden" name="_csrf" value="{{ csrf_token() }}" />
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <input type="hidden" name="action" value="approve" />
                 <button type="submit" class="admin-btn" style="padding:0.35rem 0.75rem; font-size:0.78rem; background:#dcfce7; color:#166534; border:1px solid #bbf7d0;" title="Approve">
                   Approve
@@ -79,7 +79,7 @@
               </form>
               {% else %}
               <form method="POST" action="{{ url_for('admin_review_approve', review_id=review.id) }}">
-                <input type="hidden" name="_csrf" value="{{ csrf_token() }}" />
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <input type="hidden" name="action" value="reject" />
                 <button type="submit" class="admin-btn" style="padding:0.35rem 0.75rem; font-size:0.78rem; background:#fef3c7; color:#92400e; border:1px solid #fde68a;" title="Reject">
                   Reject
@@ -89,7 +89,7 @@
 
               <form method="POST" action="{{ url_for('admin_review_delete', review_id=review.id) }}"
                     onsubmit="return confirm('Delete this review permanently?');">
-                <input type="hidden" name="_csrf" value="{{ csrf_token() }}" />
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <button type="submit" class="admin-btn" style="padding:0.35rem 0.75rem; font-size:0.78rem; background:#fee2e2; color:#991b1b; border:1px solid #fecaca;" title="Delete">
                   Delete
                 </button>
