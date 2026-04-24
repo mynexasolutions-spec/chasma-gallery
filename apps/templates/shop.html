@@ -120,6 +120,9 @@
         <a href="{{ url_for('public.product_detail', product_id=p.id) }}" class="glass product-card" style="min-width:unset;">
           <div class="card-img-wrap">
             <img src="{{ resolve_image(p.image_url) }}" alt="{{ p.name }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}';" />
+            {% if p.stock_status == 'out_of_stock' %}
+            <span style="position:absolute; top:1rem; left:1rem; background:#ef4444; color:white; font-size:0.7rem; font-weight:800; padding:0.3rem 0.6rem; border-radius:6px; letter-spacing:0.5px;">OUT OF STOCK</span>
+            {% endif %}
             {% if p.sale_price and p.sale_price < p.price %}
             <span style="position:absolute; top:1rem; right:1rem; background:#22c55e; color:white; font-size:0.7rem; font-weight:800; padding:0.3rem 0.6rem; border-radius:6px; letter-spacing:0.5px;">SALE</span>
             {% endif %}

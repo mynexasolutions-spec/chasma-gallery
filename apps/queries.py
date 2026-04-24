@@ -4,7 +4,14 @@ import db
 PRODUCTS_SELECT = """
     SELECT
         p.id, p.name, p.slug, p.sku, p.type, p.short_description, p.description,
-        p.price, p.sale_price, p.stock_quantity, p.stock_status,
+        COALESCE(
+            CASE WHEN p.type = 'variable' THEN (
+                SELECT MIN(price) FROM product_variations pv 
+                WHERE pv.product_id = p.id AND pv.price > 0
+            ) END, 
+            p.price
+        ) AS price, 
+        p.sale_price, p.stock_quantity, p.stock_status,
         p.is_featured, p.is_active, p.created_at,
         c.name  AS category_name, c.slug AS category_slug,
         b.name  AS brand_name,    b.slug AS brand_slug,
@@ -18,7 +25,15 @@ PRODUCTS_SELECT = """
 
 PRODUCTS_MINIMAL_SELECT = """
     SELECT
-        p.id, p.name, p.slug, p.sku, p.price, p.sale_price, p.stock_status,
+        p.id, p.name, p.slug, p.sku, p.type, 
+        COALESCE(
+            CASE WHEN p.type = 'variable' THEN (
+                SELECT MIN(price) FROM product_variations pv 
+                WHERE pv.product_id = p.id AND pv.price > 0
+            ) END, 
+            p.price
+        ) AS price, 
+        p.sale_price, p.stock_status,
         c.name AS category_name, c.slug AS category_slug,
         m.file_url AS image_url
     FROM products p
@@ -31,7 +46,15 @@ PRODUCTS_MINIMAL_SELECT = """
 def get_products(search=None, category=None, brand=None, shape=None,
                  sort="created_at_desc", page=1, per_page=16,
                  featured=False, limit=None):
+    # Base conditions
     conditions = ["p.is_active = TRUE"]
+    
+    # Calculate display price for filtering if needed (same logic as above)
+    price_subquery = "COALESCE(CASE WHEN p.type = 'variable' THEN (SELECT MIN(price) FROM product_variations pv WHERE pv.product_id = p.id AND pv.price > 0) END, p.price)"
+    
+    # Allow 0 price for testing, but ensure we don't crash
+    conditions.append(f"{price_subquery} >= 0")
+    
     params = []
 
     if search:
@@ -46,7 +69,7 @@ def get_products(search=None, category=None, brand=None, shape=None,
     if featured:
         conditions.append("p.is_featured = TRUE")
     if shape:
-        conditions.append("""
+        conditions.append(f"""
             (EXISTS (
                 SELECT 1 FROM product_variations pv
                 JOIN variation_attribute_values vav ON vav.variation_id = pv.id

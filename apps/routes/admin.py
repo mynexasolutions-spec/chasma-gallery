@@ -1,12 +1,60 @@
 import csv
 import io
 import uuid
+import itertools
+import uuid
 from functools import wraps
 from flask import render_template, request, redirect, url_for, flash, abort, session
 import db
-from helpers import slugify, get_store_settings
+from helpers import slugify, get_store_settings, get_unique_slug
 from queries import get_products, get_categories, get_brands, get_admin_stats, PRODUCTS_SELECT
 
+
+def generate_variations(product_id):
+    rows = db.query("""
+        SELECT av.attribute_id, av.id as value_id, av.stock_quantity
+        FROM product_attribute_values pav
+        JOIN attribute_values av ON av.id = pav.attribute_value_id
+        WHERE pav.product_id = %s
+    """, [product_id])
+    grouped = {}
+    value_stocks = {}
+    for r in rows:
+        grouped.setdefault(r["attribute_id"], []).append(r["value_id"])
+        value_stocks[r["value_id"]] = r["stock_quantity"]
+    
+    if not grouped:
+        return
+    
+    combinations = list(itertools.product(*grouped.values()))
+    existing_vars = db.query("SELECT id FROM product_variations WHERE product_id = %s", [product_id])
+    existing_combos = []
+    for ev in existing_vars:
+        vals = db.query("SELECT attribute_value_id FROM variation_attribute_values WHERE variation_id = %s", [ev["id"]])
+        existing_combos.append(set(v["attribute_value_id"] for v in vals))
+    
+    product = db.query_one("SELECT price, sku FROM products WHERE id = %s", [product_id])
+    base_price = product["price"] if product else 0
+    base_sku = product["sku"] if product and product["sku"] else "VAR"
+    
+    for combo in combinations:
+        if any(set(combo) == ec for ec in existing_combos):
+            continue
+        
+        # Default stock is the minimum stock among the selected attribute values
+        default_stock = min([value_stocks.get(vid, 0) for vid in combo]) if combo else 0
+        
+        var_id = str(uuid.uuid4())
+        var_sku = f"{base_sku}-{uuid.uuid4().hex[:6].upper()}"
+        db.execute(
+            "INSERT INTO product_variations (id, product_id, sku, price, stock_quantity) VALUES (%s,%s,%s,%s,%s)",
+            [var_id, product_id, var_sku, base_price, default_stock]
+        )
+        for val_id in combo:
+            db.execute(
+                "INSERT INTO variation_attribute_values (id, variation_id, attribute_value_id) VALUES (%s,%s,%s)",
+                [str(uuid.uuid4()), var_id, val_id]
+            )
 
 def require_admin(f):
     @wraps(f)
@@ -74,6 +122,8 @@ def register(app):
             products, total, total_pages = get_products(
                 search=search, category=category, brand=brand, page=page, per_page=20
             )
+            if products:
+                print(f"DEBUG: First product '{products[0]['name']}' price: {products[0]['price']}")
             categories = get_categories()
             brands     = get_brands()
         except Exception as e:
@@ -99,7 +149,35 @@ def register(app):
             )
         if request.method == "POST":
             f = request.form
+            if f.get("type") == "variable":
+                attr_ids = request.form.getlist("attribute_ids")
+                val_ids = request.form.getlist("attribute_value_ids")
+                
+                if not attr_ids:
+                    flash("Variable products must have at least one attribute selected.", "error")
+                    return redirect(url_for("admin_product_new"))
+                
+                # Check if each selected attribute has at least one value
+                for aid in attr_ids:
+                    # Get values for this specific attribute from the database
+                    valid_vals = db.query("SELECT id FROM attribute_values WHERE attribute_id = %s", [aid])
+                    valid_val_ids = [v["id"] for v in valid_vals]
+                    # Check if any of the selected val_ids belong to this attribute
+                    if not any(vid in valid_val_ids for vid in val_ids):
+                        flash(f"Please select at least one value for the selected attributes.", "error")
+                        return redirect(url_for("admin_product_new"))
             try:
+                stock_qty = int(f.get("stock_quantity") or 0)
+                stock_status = f.get("stock_status", "in_stock")
+                if stock_qty <= 0:
+                    stock_status = "out_of_stock"
+                elif stock_status == "out_of_stock" and stock_qty > 0:
+                    stock_status = "in_stock"
+
+                name = f.get("name")
+                slug = get_unique_slug("products", f.get("slug") or slugify(name))
+                sku  = f.get("sku", "").strip() or None
+
                 product_id = db.execute_returning(
                     """INSERT INTO products
                        (id, name, slug, sku, type, description, short_description,
@@ -107,10 +185,10 @@ def register(app):
                         category_id, brand_id, is_featured, is_active)
                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
                     [
-                        str(uuid.uuid4()), f.get("name"), f.get("slug"), f.get("sku"),
+                        str(uuid.uuid4()), name, slug, sku,
                         f.get("type", "simple"), f.get("description"), f.get("short_description"),
                         float(f.get("price") or 0), float(f.get("sale_price") or 0) or None,
-                        int(f.get("stock_quantity") or 0), f.get("stock_status", "in_stock"), True,
+                        stock_qty, stock_status, True,
                         f.get("category_id") or None, f.get("brand_id") or None,
                         f.get("is_featured") == "on", f.get("is_active", "on") == "on",
                     ]
@@ -125,6 +203,8 @@ def register(app):
                         "INSERT INTO product_attribute_values (id, product_id, attribute_value_id) VALUES (%s,%s,%s)",
                         [str(uuid.uuid4()), product_id, val_id]
                     )
+                if f.get("type") == "variable":
+                    generate_variations(product_id)
                 flash("Product created successfully.", "success")
                 return redirect(url_for("admin_products"))
             except Exception as e:
@@ -150,7 +230,32 @@ def register(app):
             )
         if request.method == "POST":
             f = request.form
+            if f.get("type") == "variable":
+                attr_ids = request.form.getlist("attribute_ids")
+                val_ids = request.form.getlist("attribute_value_ids")
+                
+                if not attr_ids:
+                    flash("Variable products must have at least one attribute selected.", "error")
+                    return redirect(url_for("admin_product_edit", product_id=product_id))
+                
+                for aid in attr_ids:
+                    valid_vals = db.query("SELECT id FROM attribute_values WHERE attribute_id = %s", [aid])
+                    valid_val_ids = [v["id"] for v in valid_vals]
+                    if not any(vid in valid_val_ids for vid in val_ids):
+                        flash(f"Please select at least one value for the selected attributes.", "error")
+                        return redirect(url_for("admin_product_edit", product_id=product_id))
             try:
+                stock_qty = int(f.get("stock_quantity") or 0)
+                stock_status = f.get("stock_status", "in_stock")
+                if stock_qty <= 0:
+                    stock_status = "out_of_stock"
+                elif stock_status == "out_of_stock" and stock_qty > 0:
+                    stock_status = "in_stock"
+
+                name = f.get("name")
+                slug = get_unique_slug("products", f.get("slug") or slugify(name), exclude_id=product_id)
+                sku  = f.get("sku", "").strip() or None
+
                 db.execute(
                     """UPDATE products SET
                        name=%s, slug=%s, sku=%s, type=%s, description=%s,
@@ -158,10 +263,10 @@ def register(app):
                        stock_quantity=%s, stock_status=%s, category_id=%s,
                        brand_id=%s, is_featured=%s, is_active=%s WHERE id=%s""",
                     [
-                        f.get("name"), f.get("slug"), f.get("sku"), f.get("type", "simple"),
+                        name, slug, sku, f.get("type", "simple"),
                         f.get("description"), f.get("short_description"),
                         float(f.get("price") or 0), float(f.get("sale_price") or 0) or None,
-                        int(f.get("stock_quantity") or 0), f.get("stock_status", "in_stock"),
+                        stock_qty, stock_status,
                         f.get("category_id") or None, f.get("brand_id") or None,
                         f.get("is_featured") == "on", f.get("is_active") == "on", product_id,
                     ]
@@ -196,6 +301,8 @@ def register(app):
                         "INSERT INTO product_attribute_values (id, product_id, attribute_value_id) VALUES (%s,%s,%s)",
                         [str(uuid.uuid4()), product_id, val_id]
                     )
+                if f.get("type") == "variable":
+                    generate_variations(product_id)
                 flash("Product updated successfully.", "success")
                 return redirect(url_for("admin_products"))
             except Exception as e:
@@ -216,12 +323,24 @@ def register(app):
                 "SELECT attribute_value_id FROM product_attribute_values WHERE product_id = %s", [product_id]
             )
         ]
+        variations = []
+        if product["type"] == "variable":
+            variations = db.query("""
+                SELECT v.*,
+                       (SELECT string_agg(av.value, ' / ')
+                        FROM variation_attribute_values vav
+                        JOIN attribute_values av ON av.id = vav.attribute_value_id
+                        WHERE vav.variation_id = v.id) as option_names
+                FROM product_variations v WHERE v.product_id = %s ORDER BY v.sku ASC
+            """, [product_id])
+
         return render_template(
             "admin/product_form.html",
             product=product, categories=categories, brands=brands,
             all_attributes=all_attributes,
             product_attribute_ids=product_attribute_ids,
             selected_value_ids=selected_value_ids, action="edit",
+            variations=variations
         )
 
     @app.route("/admin/products/<product_id>/delete", methods=["POST"])
@@ -485,12 +604,13 @@ def register(app):
             return redirect(url_for("admin_attributes"))
         if request.method == "POST":
             value     = request.form.get("value")
+            stock     = request.form.get("stock_quantity") or 0
             image_url = request.form.get("image_url") or None
             if value:
                 try:
                     db.execute(
-                        "INSERT INTO attribute_values (id, attribute_id, value, image_url) VALUES (%s,%s,%s,%s)",
-                        [str(uuid.uuid4()), attr_id, value, image_url]
+                        "INSERT INTO attribute_values (id, attribute_id, value, image_url, stock_quantity) VALUES (%s,%s,%s,%s,%s)",
+                        [str(uuid.uuid4()), attr_id, value, image_url, int(stock)]
                     )
                     flash("Value added", "success")
                 except Exception as e:
@@ -499,6 +619,22 @@ def register(app):
             "SELECT * FROM attribute_values WHERE attribute_id = %s ORDER BY value ASC", [attr_id]
         )
         return render_template("admin/attribute_values.html", attribute=attribute, values=values)
+
+    @app.route("/admin/attributes/<attr_id>/values/bulk_update", methods=["POST"])
+    @require_admin
+    def admin_attribute_values_bulk_update(attr_id):
+        f = request.form
+        try:
+            values = db.query("SELECT id FROM attribute_values WHERE attribute_id = %s", [attr_id])
+            for v in values:
+                v_id = v["id"]
+                stock = f.get(f"stock_{v_id}")
+                if stock is not None:
+                    db.execute("UPDATE attribute_values SET stock_quantity=%s WHERE id=%s", [int(stock or 0), v_id])
+            flash("Attribute values updated.", "success")
+        except Exception as e:
+            flash(f"Error updating values: {e}", "error")
+        return redirect(url_for("admin_attribute_values", attr_id=attr_id))
 
     @app.route("/admin/attributes/values/<val_id>/delete", methods=["POST"])
     @require_admin
@@ -581,6 +717,29 @@ def register(app):
             flash(f"Error: {e}", "error")
         return redirect(url_for("admin_product_variations", product_id=product_id))
 
+    @app.route("/admin/products/<product_id>/variations/bulk_update", methods=["POST"])
+    @require_admin
+    def admin_variations_bulk_update(product_id):
+        try:
+            # First, fetch all variation IDs for this product to validate
+            rows = db.query("SELECT id FROM product_variations WHERE product_id = %s", [product_id])
+            var_ids = [r["id"] for r in rows]
+            
+            for vid in var_ids:
+                sku = request.form.get(f"sku_{vid}")
+                price = request.form.get(f"price_{vid}")
+                stock = request.form.get(f"stock_{vid}")
+                
+                if sku is not None and price is not None and stock is not None:
+                    db.execute(
+                        "UPDATE product_variations SET sku=%s, price=%s, stock_quantity=%s WHERE id=%s",
+                        [sku, float(price), int(stock), vid]
+                    )
+            flash("All variations updated successfully.", "success")
+        except Exception as e:
+            flash(f"Error during bulk update: {e}", "error")
+        return redirect(url_for("admin_product_variations", product_id=product_id))
+
     # ── Reviews ────────────────────────────────────────────────────────────────
 
     @app.route("/admin/reviews")
@@ -588,8 +747,11 @@ def register(app):
     def admin_reviews():
         try:
             reviews = db.query("""
-                SELECT r.*, p.name AS product_name, p.id AS product_id
-                FROM reviews r LEFT JOIN products p ON p.id = r.product_id
+                SELECT r.*, p.name AS product_name, p.id AS product_id,
+                       (u.first_name || ' ' || u.last_name) AS reviewer_name
+                FROM product_reviews r 
+                LEFT JOIN products p ON p.id = r.product_id
+                LEFT JOIN users u ON u.id = r.user_id
                 ORDER BY r.created_at DESC
             """)
         except Exception as e:
@@ -603,7 +765,7 @@ def register(app):
         action = request.form.get("action", "approve")
         try:
             approved = action == "approve"
-            db.execute("UPDATE reviews SET is_approved=%s WHERE id=%s", [approved, review_id])
+            db.execute("UPDATE product_reviews SET is_approved=%s WHERE id=%s", [approved, review_id])
             flash("Review " + ("approved." if approved else "rejected."), "success")
         except Exception as e:
             flash(f"Error: {e}", "error")
@@ -613,7 +775,7 @@ def register(app):
     @require_admin
     def admin_review_delete(review_id):
         try:
-            db.execute("DELETE FROM reviews WHERE id=%s", [review_id])
+            db.execute("DELETE FROM product_reviews WHERE id=%s", [review_id])
             flash("Review deleted.", "success")
         except Exception as e:
             flash(f"Error: {e}", "error")

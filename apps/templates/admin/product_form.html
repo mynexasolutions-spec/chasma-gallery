@@ -10,13 +10,10 @@
   </div>
   <div class="admin-page-header" style="margin-bottom:0;">
     <h1 style="font-size:1.5rem; font-weight:700; color:var(--admin-text-main);">{{ 'Edit Product' if action == 'edit' else 'Create New Product' }}</h1>
-    {% if action == 'edit' and product.type == 'variable' %}
-    <a href="{{ url_for('admin_product_variations', product_id=product.id) }}" class="admin-btn btn-primary">Manage Variations</a>
-    {% endif %}
   </div>
 </div>
 
-<form method="post" class="admin-card" style="padding:2.5rem; max-width:1000px;">
+<form method="post" class="admin-card" style="padding:2.5rem; max-width:1100px; margin: 0 auto;">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
   <div class="admin-grid-2" style="margin-bottom:1.5rem;">
@@ -63,53 +60,88 @@
   </div>
 
   <!-- Variable Attributes Section -->
-  <div id="attributesSection" style="margin-bottom:2rem; padding:1.5rem; background:#f8fafc; border:1px dashed var(--admin-border); border-radius:1rem; {% if not product or product.type != 'variable' %}display:none;{% endif %}">
-    <h3 style="font-size:0.875rem; font-weight:700; margin-bottom:1rem; color:var(--admin-text-main);">Product Attributes</h3>
-    <p style="font-size:0.8125rem; color:var(--admin-text-muted); margin-bottom:1.5rem;">Select attributes and specific values that define this product's variations.</p>
+  <div id="attributesSection" style="margin-bottom:2rem; padding:1.5rem; background:#f8fafc; border:1px solid var(--admin-border); border-radius:1rem; {% if not product or product.type != 'variable' %}display:none;{% endif %}">
+    <h3 style="font-size:0.95rem; font-weight:700; margin-bottom:1rem; color:var(--admin-text-main);">Product Attributes & Variations</h3>
+    <p style="font-size:0.8125rem; color:var(--admin-text-muted); margin-bottom:1.5rem;">Select attributes and values. Variations will be generated automatically upon saving.</p>
     
-    <div style="display:flex; flex-direction:column; gap:1.25rem;">
+    <div style="display:flex; flex-direction:column; gap:1rem;">
       {% for attr in all_attributes %}
-      <div style="background:white; padding:1.25rem; border-radius:0.875rem; border:1px solid var(--admin-border);">
+      <div style="background:white; padding:1.25rem; border-radius:0.75rem; border:1px solid var(--admin-border);">
         <label style="display:flex; align-items:center; gap:0.75rem; cursor:pointer; margin-bottom:1rem;">
           <input type="checkbox" name="attribute_ids" value="{{ attr.id }}" 
                  {% if product_attribute_ids and attr.id in product_attribute_ids %}checked{% endif %} 
                  onchange="toggleAttrValues('{{ attr.id }}', this.checked)"
                  style="width:18px; height:18px; accent-color:var(--admin-primary);">
-          <span style="font-size:0.95rem; font-weight:700; color:var(--admin-text-main);">{{ attr.name }}</span>
+          <span style="font-size:0.9rem; font-weight:700; color:var(--admin-text-main);">{{ attr.name }}</span>
         </label>
         
-        <div id="values_{{ attr.id }}" style="display: {% if product_attribute_ids and attr.id in product_attribute_ids %}flex{% else %}none{% endif %}; flex-wrap:wrap; gap:0.625rem; padding-left:1.75rem;">
+        <div id="values_{{ attr.id }}" style="display: {% if product_attribute_ids and attr.id in product_attribute_ids %}flex{% else %}none{% endif %}; flex-wrap:wrap; gap:0.5rem; padding-left:1.75rem;">
           {% if attr.options %}
             {% for val in attr.options %}
-            <label style="display:flex; align-items:center; gap:0.5rem; padding:0.4rem 1rem; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:999px; font-size:0.85rem; cursor:pointer; transition:0.2s;" class="attr-val-pill">
+            <label style="display:flex; align-items:center; gap:0.5rem; padding:0.4rem 0.875rem; background:#f1f5f9; border:1px solid #e2e8f0; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:0.2s;" class="attr-val-pill">
               <input type="checkbox" name="attribute_value_ids" value="{{ val.id }}" 
                      {% if selected_value_ids and val.id in selected_value_ids %}checked{% endif %} 
                      style="width:14px; height:14px; accent-color:var(--admin-primary);">
               <span>{{ val.value }}</span>
+              <span style="opacity:0.6; font-size:0.7rem; border-left:1px solid rgba(0,0,0,0.1); padding-left:0.4rem; margin-left:0.2rem;">Stock: {{ val.stock_quantity or 0 }}</span>
             </label>
             {% endfor %}
           {% else %}
-            <p style="font-size:0.8rem; color:var(--admin-text-muted); font-style:italic;">No values defined for this attribute.</p>
+            <p style="font-size:0.8rem; color:var(--admin-text-muted); font-style:italic;">No values defined.</p>
           {% endif %}
         </div>
       </div>
       {% endfor %}
     </div>
 
-    {% if action == 'edit' and product.type == 'variable' %}
-    <div style="margin-top:2rem; padding-top:1rem; border-top:1px solid var(--admin-border);">
-      <a href="{{ url_for('admin_product_variations', product_id=product.id) }}" class="admin-btn btn-primary" style="font-size:0.875rem; background:rgba(99,102,241,0.1); color:var(--admin-primary); border:1px solid var(--admin-primary);">
-        Manage Variations List →
-      </a>
+    <!-- Integrated Variations Table (Only on Edit) -->
+    {% if action == 'edit' and variations %}
+    <div style="margin-top:2.5rem; padding-top:2rem; border-top:1px solid var(--admin-border);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+          <h4 style="font-size:0.9rem; font-weight:700;">Individual Variations Management</h4>
+          <a href="{{ url_for('admin_product_variations', product_id=product.id) }}" class="admin-btn" style="font-size:0.8rem; background:rgba(99,102,241,0.05); color:var(--admin-primary); border:1px solid rgba(99,102,241,0.1);">Full Variation Editor →</a>
+      </div>
+      
+      <div style="overflow-x:auto;">
+          <table class="admin-table" style="font-size:0.875rem; background:white;">
+            <thead>
+              <tr>
+                <th>Configuration</th>
+                <th>SKU</th>
+                <th style="width:100px;">Price</th>
+                <th style="width:100px;">Stock</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for v in variations[:5] %}
+              <tr>
+                <td style="font-weight:600; color:var(--admin-primary);">{{ v.option_names }}</td>
+                <td style="font-family:monospace; font-size:0.75rem;">{{ v.sku }}</td>
+                <td>₹{{ "%.2f"|format(v.price) }}</td>
+                <td>
+                    <span style="font-weight:700; {% if v.stock_quantity <= 5 %}color:#ef4444;{% endif %}">{{ v.stock_quantity }}</span>
+                </td>
+              </tr>
+              {% endfor %}
+              {% if variations|length > 5 %}
+              <tr>
+                  <td colspan="4" style="text-align:center; padding:1rem; background:#f8fafc; font-size:0.8rem; color:var(--admin-text-muted);">
+                      Showing 5 of {{ variations|length }} variations. <a href="{{ url_for('admin_product_variations', product_id=product.id) }}" style="color:var(--admin-primary); font-weight:600;">Edit all variations here.</a>
+                  </td>
+              </tr>
+              {% endif %}
+            </tbody>
+          </table>
+      </div>
     </div>
     {% endif %}
   </div>
 
-  <div id="priceStockFields" {% if product and product.type == 'variable' %}style="display:none;"{% endif %}>
+  <div id="priceStockFields" style="{% if product and product.type == 'variable' %}display:none;{% endif %}">
     <div class="admin-grid-3" style="margin-bottom:1.5rem;">
       <div>
         <label class="admin-label">Regular Price (₹) *</label>
-        <input type="number" step="0.01" min="0" name="price" value="{{ product.price if product else '' }}" class="admin-input" />
+        <input type="number" step="0.01" min="0" name="price" {% if not product or product.type != 'variable' %}required{% endif %} value="{{ product.price if product else '' }}" class="admin-input" />
       </div>
       <div>
         <label class="admin-label">Sale Price (₹)</label>
@@ -122,7 +154,7 @@
     </div>
   </div>
 
-  <div style="grid-column:1/-1; margin-bottom:1.5rem;">
+  <div style="margin-bottom:1.5rem;">
     <label class="admin-label">Stock Status</label>
     <select name="stock_status" class="admin-input">
       {% for s in ['in_stock','out_of_stock','on_backorder'] %}
@@ -145,7 +177,7 @@
     <textarea name="description" rows="6" class="admin-input" style="resize:vertical;">{{ product.description if product else '' }}</textarea>
   </div>
 
-  <div style="display:flex; gap:2rem; margin-bottom:2.5rem; padding:1.25rem; background:#f8fafc; border-radius:1rem;">
+  <div style="display:flex; gap:2rem; margin-bottom:2.5rem; padding:1.25rem; background:#f8fafc; border-radius:1rem; border:1px solid var(--admin-border);">
     <label style="display:flex; align-items:center; gap:0.625rem; cursor:pointer; font-weight:600; font-size:0.875rem;">
       <input type="checkbox" name="is_featured" {% if product and product.is_featured %}checked{% endif %} style="accent-color:var(--admin-primary); width:18px; height:18px;" />
       Featured Product
@@ -157,7 +189,7 @@
   </div>
 
   <div style="display:flex; gap:1rem; padding-top:1.5rem; border-top:1px solid var(--admin-border);">
-    <button type="submit" class="admin-btn btn-primary" style="padding:0.75rem 2.5rem; font-size:1rem;">
+    <button type="submit" class="admin-btn btn-primary" style="padding:0.75rem 2.5rem; font-size:1rem; font-weight:700;">
       {{ 'Save Changes' if action == 'edit' else 'Create Product' }}
     </button>
     <a href="{{ url_for('admin_products') }}" class="admin-btn btn-outline" style="padding:0.75rem 1.5rem;">Cancel</a>
@@ -183,10 +215,8 @@
     const priceSection = document.getElementById('priceStockFields');
     if (type === 'variable') {
       attrSection.style.display = 'block';
-      priceSection.style.display = 'none';
     } else {
       attrSection.style.display = 'none';
-      priceSection.style.display = 'block';
     }
   }
 

@@ -20,7 +20,7 @@ def index():
             WHERE a.slug = 'frame-shape' AND av.image_url IS NOT NULL LIMIT 6
         """)
         featured_categories = db.query("""
-            SELECT name as label, image_url as img, slug
+            SELECT DISTINCT ON (name) name as label, image_url as img, slug
             FROM categories WHERE parent_id IS NULL ORDER BY name ASC
         """)
     except Exception as e:

@@ -124,13 +124,29 @@ def checkout():
             for item_key, item in cart.items():
                 unit_price = float(item.get("price", 0))
                 qty        = int(item.get("qty", 1))
+                pid        = item.get("product_id")
+                vid        = item.get("variation_id")
+
+                # Deduct stock
+                if vid:
+                    db.execute("UPDATE product_variations SET stock_quantity = stock_quantity - %s WHERE id = %s", [qty, vid])
+                    v_row = db.query_one("SELECT stock_quantity FROM product_variations WHERE id = %s", [vid])
+                    if v_row and v_row["stock_quantity"] <= 0:
+                        db.execute("UPDATE product_variations SET stock_quantity = 0 WHERE id = %s", [vid])
+                
+                db.execute("UPDATE products SET stock_quantity = stock_quantity - %s WHERE id = %s", [qty, pid])
+                p_row = db.query_one("SELECT stock_quantity FROM products WHERE id = %s", [pid])
+                if p_row:
+                    new_qty = p_row["stock_quantity"]
+                    if new_qty <= 0:
+                        db.execute("UPDATE products SET stock_quantity = 0, stock_status = 'out_of_stock' WHERE id = %s", [pid])
+
                 db.execute(
                     """INSERT INTO order_items
                        (id, order_id, product_id, variation_id, quantity,
                         unit_price, total_price, product_name_snapshot)
                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s)""",
-                    [str(uuid.uuid4()), order_id, item.get("product_id"),
-                     item.get("variation_id") or None, qty, unit_price,
+                    [str(uuid.uuid4()), order_id, pid, vid or None, qty, unit_price,
                      unit_price * qty, item.get("name", "")]
                 )
             if save_address:

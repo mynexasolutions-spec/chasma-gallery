@@ -9,6 +9,21 @@ def slugify(text):
     return re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
 
 
+def get_unique_slug(table, base_slug, exclude_id=None):
+    slug = base_slug or "item"
+    counter = 1
+    while True:
+        query = f"SELECT id FROM {table} WHERE slug = %s"
+        params = [slug]
+        if exclude_id:
+            query += " AND id != %s"
+            params.append(exclude_id)
+        if not db.query_one(query, params):
+            return slug
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+
 def get_store_settings():
     try:
         rows = db.query("SELECT key, value FROM store_settings")
