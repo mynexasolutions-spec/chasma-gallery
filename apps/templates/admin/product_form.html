@@ -254,7 +254,6 @@
                   <tr>
                     <th style="padding:1rem; text-align:left; font-size:0.75rem;">VARIATION</th>
                     <th style="padding:1rem; text-align:left; font-size:0.75rem;">SKU</th>
-                    <th style="padding:1rem; text-align:left; font-size:0.75rem;">PRICE</th>
                     <th style="padding:1rem; text-align:left; font-size:0.75rem;">STOCK</th>
                   </tr>
                 </thead>
@@ -263,7 +262,7 @@
                   <tr style="border-top:1px solid var(--admin-border);">
                     <td style="padding:1rem; font-size:0.875rem; font-weight:600;">{{ v.option_names }}</td>
                     <td style="padding:1rem;"><input type="text" name="sku_{{ v.id }}" value="{{ v.sku or '' }}" class="admin-input" style="padding:0.4rem; font-size:0.8rem; height:auto;" /></td>
-                    <td style="padding:1rem;"><input type="number" name="price_{{ v.id }}" value="{{ v.price }}" step="0.01" class="admin-input" style="padding:0.4rem; font-size:0.8rem; height:auto;" /></td>
+                    <input type="hidden" name="price_{{ v.id }}" value="{{ v.price }}" />
                     <td style="padding:1rem;"><input type="number" name="stock_{{ v.id }}" value="{{ v.stock_quantity }}" class="admin-input" style="padding:0.4rem; font-size:0.8rem; height:auto;" /></td>
                   </tr>
                   {% endfor %}
@@ -280,7 +279,6 @@
                 <thead style="background:#f9fafb;">
                   <tr>
                     <th style="padding:1rem; text-align:left; font-size:0.75rem;">COMBINATION</th>
-                    <th style="padding:1rem; text-align:left; font-size:0.75rem;">PRICE</th>
                     <th style="padding:1rem; text-align:left; font-size:0.75rem;">STOCK</th>
                   </tr>
                 </thead>
@@ -393,10 +391,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 row.style.borderTop = '1px solid var(--admin-border)';
                 row.innerHTML = `
                     <td style="padding:1rem; font-size:0.875rem; font-weight:600;">${label}</td>
-                    <td style="padding:1rem;">
-                        <input type="hidden" name="new_var_vals_${index}" value="${valIds}">
-                        <input type="number" name="new_var_price_${index}" value="${basePrice}" step="0.01" class="admin-input" style="padding:0.4rem; font-size:0.8rem; height:auto;" />
-                    </td>
+                    <input type="hidden" name="new_var_vals_${index}" value="${valIds}">
+                    <input type="hidden" name="new_var_price_${index}" value="${basePrice}">
                     <td style="padding:1rem;">
                         <input type="number" name="new_var_stock_${index}" value="0" class="admin-input" style="padding:0.4rem; font-size:0.8rem; height:auto;" />
                     </td>
