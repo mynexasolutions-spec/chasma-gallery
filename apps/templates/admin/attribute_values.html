@@ -17,7 +17,7 @@
   <!-- Add Value Form -->
   <div class="admin-card">
     <h3 style="font-size:1rem; font-weight:700; margin-bottom:1.5rem;">Add New Value</h3>
-    <form method="post">
+    <form method="post" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
       <div style="margin-bottom:1.25rem;">
         <label class="admin-label">Value Content *</label>
@@ -28,8 +28,8 @@
         <input type="number" name="stock_quantity" value="0" class="admin-input" />
       </div>
       <div style="margin-bottom:1.5rem;">
-        <label class="admin-label">Image/Icon URL (Optional)</label>
-        <input type="text" name="image_url" placeholder="e.g. shape_rect.jpg" class="admin-input" />
+        <label class="admin-label">Image/Icon (Optional)</label>
+        <input type="file" name="image_file" class="admin-input" accept="image/*" style="padding:0.4rem; background:white;" />
       </div>
       <button type="submit" class="admin-btn btn-primary" style="width:100%; justify-content:center; font-weight:700;">Add Value</button>
     </form>
