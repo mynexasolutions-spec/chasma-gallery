@@ -1,0 +1,5 @@
+.venv/
+apps/.env
+apps/static/uploads/
+__pycache__/
+*.pyc
