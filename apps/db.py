@@ -17,7 +17,7 @@ _pool = None
 def get_pool():
     global _pool
     if _pool is None:
-        _pool = pool.ThreadedConnectionPool(1, 10, DATABASE_URL)
+        _pool = pool.ThreadedConnectionPool(2, 20, DATABASE_URL)
     return _pool
 
 
@@ -105,6 +105,9 @@ _MIGRATIONS = [
     )""",
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) DEFAULT 'cod'",
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT 'pending'",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_number VARCHAR(50)",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancel_reason TEXT DEFAULT ''",
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_address_json TEXT DEFAULT ''",
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_name VARCHAR(200) DEFAULT ''",
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_email VARCHAR(200) DEFAULT ''",
@@ -115,11 +118,120 @@ _MIGRATIONS = [
     "ALTER TABLE order_items ADD COLUMN IF NOT EXISTS unit_price NUMERIC(10,2) DEFAULT 0",
     "ALTER TABLE order_items ADD COLUMN IF NOT EXISTS total_price NUMERIC(10,2) DEFAULT 0",
     "ALTER TABLE order_items ADD COLUMN IF NOT EXISTS product_name_snapshot TEXT DEFAULT ''",
+    "ALTER TABLE attribute_values DROP COLUMN IF EXISTS stock_quantity",
+     """UPDATE orders
+         SET order_number = 'ORD-' || UPPER(SUBSTRING(REPLACE(id::text, '-', '') FROM 1 FOR 12))
+         WHERE order_number IS NULL OR order_number = ''""",
+    """UPDATE products p
+       SET price = v.variation_price
+       FROM (
+           SELECT product_id, MIN(NULLIF(price, 0)) AS variation_price
+           FROM product_variations
+           GROUP BY product_id
+       ) v
+       WHERE p.id = v.product_id
+         AND COALESCE(NULLIF(p.price, 0), 0) = 0
+         AND v.variation_price IS NOT NULL""",
+    """UPDATE product_variations pv
+       SET price = COALESCE(p.price, 0),
+           sale_price = p.sale_price,
+           stock_quantity = COALESCE(p.stock_quantity, 0)
+       FROM products p
+       WHERE p.id = pv.product_id""",
+    """CREATE OR REPLACE FUNCTION sync_variation_pricing_from_product()
+       RETURNS TRIGGER AS $$
+       DECLARE parent_row RECORD;
+       BEGIN
+           SELECT price, sale_price, stock_quantity
+           INTO parent_row
+           FROM products
+           WHERE id = NEW.product_id;
+
+           IF FOUND THEN
+               NEW.price = COALESCE(parent_row.price, 0);
+               NEW.sale_price = parent_row.sale_price;
+               NEW.stock_quantity = COALESCE(parent_row.stock_quantity, 0);
+           END IF;
+
+           RETURN NEW;
+       END;
+       $$ LANGUAGE plpgsql""",
+    "DROP TRIGGER IF EXISTS trg_sync_variation_pricing ON product_variations",
+    """CREATE TRIGGER trg_sync_variation_pricing
+       BEFORE INSERT OR UPDATE ON product_variations
+       FOR EACH ROW
+       EXECUTE FUNCTION sync_variation_pricing_from_product()""",
+    """CREATE OR REPLACE FUNCTION sync_variations_from_product()
+       RETURNS TRIGGER AS $$
+       BEGIN
+           UPDATE product_variations
+              SET price = COALESCE(NEW.price, 0),
+                  sale_price = NEW.sale_price,
+                  stock_quantity = COALESCE(NEW.stock_quantity, 0)
+            WHERE product_id = NEW.id;
+
+           RETURN NEW;
+       END;
+       $$ LANGUAGE plpgsql""",
+    "DROP TRIGGER IF EXISTS trg_sync_variations_from_product ON products",
+    """CREATE TRIGGER trg_sync_variations_from_product
+       AFTER UPDATE OF price, sale_price, stock_quantity ON products
+       FOR EACH ROW
+       EXECUTE FUNCTION sync_variations_from_product()""",
+     """CREATE OR REPLACE FUNCTION set_order_number_if_missing()
+         RETURNS TRIGGER AS $$
+         BEGIN
+              IF NEW.order_number IS NULL OR NEW.order_number = '' THEN
+                    NEW.order_number := 'ORD-' || UPPER(SUBSTRING(REPLACE(gen_random_uuid()::text, '-', '') FROM 1 FOR 12));
+              END IF;
+              RETURN NEW;
+         END;
+         $$ LANGUAGE plpgsql""",
+     "DROP TRIGGER IF EXISTS trg_set_order_number_if_missing ON orders",
+     """CREATE TRIGGER trg_set_order_number_if_missing
+         BEFORE INSERT ON orders
+         FOR EACH ROW
+         EXECUTE FUNCTION set_order_number_if_missing()""",
     """INSERT INTO store_settings (key, value) VALUES
          ('cod_enabled','true'), ('online_payment_enabled','false'),
          ('upi_id',''), ('bank_name',''), ('bank_account',''), ('bank_ifsc',''),
          ('razorpay_key_id',''), ('razorpay_key_secret','')
        ON CONFLICT (key) DO NOTHING""",
+
+    # ── Coupon usage tracking + order discount columns ─────────────────────
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code VARCHAR(100) DEFAULT ''",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(10,2) DEFAULT 0",
+    """CREATE TABLE IF NOT EXISTS coupon_usages (
+        id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        coupon_id  UUID NOT NULL,
+        user_id    UUID NOT NULL,
+        order_id   UUID NOT NULL,
+        used_at    TIMESTAMP DEFAULT NOW()
+    )""",
+    "CREATE INDEX IF NOT EXISTS idx_coupon_usages_coupon_id ON coupon_usages(coupon_id)",
+    "CREATE INDEX IF NOT EXISTS idx_coupon_usages_user_id   ON coupon_usages(user_id)",
+
+    # ── Performance indexes ─────────────────────────────────────────────────
+    "CREATE INDEX IF NOT EXISTS idx_products_is_active       ON products(is_active)",
+    "CREATE INDEX IF NOT EXISTS idx_products_category_id     ON products(category_id)",
+    "CREATE INDEX IF NOT EXISTS idx_products_brand_id        ON products(brand_id)",
+    "CREATE INDEX IF NOT EXISTS idx_products_is_featured     ON products(is_featured) WHERE is_featured = TRUE",
+    "CREATE INDEX IF NOT EXISTS idx_products_created_at      ON products(created_at DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_products_price           ON products(price)",
+    "CREATE INDEX IF NOT EXISTS idx_products_active_created  ON products(is_active, created_at DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_product_images_prod_pri  ON product_images(product_id, is_primary)",
+    "CREATE INDEX IF NOT EXISTS idx_product_variations_pid   ON product_variations(product_id)",
+    "CREATE INDEX IF NOT EXISTS idx_vav_variation_id         ON variation_attribute_values(variation_id)",
+    "CREATE INDEX IF NOT EXISTS idx_vav_value_id             ON variation_attribute_values(attribute_value_id)",
+    "CREATE INDEX IF NOT EXISTS idx_attr_values_attr_id      ON attribute_values(attribute_id)",
+    "CREATE INDEX IF NOT EXISTS idx_orders_user_id           ON orders(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_orders_status            ON orders(status)",
+    "CREATE INDEX IF NOT EXISTS idx_order_items_order_id     ON order_items(order_id)",
+    "CREATE INDEX IF NOT EXISTS idx_user_addresses_user_id   ON user_addresses(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_categories_slug          ON categories(slug)",
+    "CREATE INDEX IF NOT EXISTS idx_brands_slug              ON brands(slug)",
+    "CREATE INDEX IF NOT EXISTS idx_product_reviews_pid      ON product_reviews(product_id, is_approved)",
+    "CREATE INDEX IF NOT EXISTS idx_attributes_slug          ON attributes(slug)",
 ]
 
 

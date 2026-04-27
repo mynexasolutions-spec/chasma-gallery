@@ -1,4 +1,6 @@
 import re
+import functools
+import time
 import markupsafe
 import db
 
@@ -7,6 +9,26 @@ def slugify(text):
     if not text:
         return ""
     return re.sub(r'[^a-z0-9]+', '-', text.lower()).strip('-')
+
+
+def ttl_cache(ttl_seconds=60):
+    def decorator(func):
+        cache = {}
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            key = (args, tuple(sorted(kwargs.items())))
+            now = time.time()
+            cached = cache.get(key)
+            if cached and now - cached[0] < ttl_seconds:
+                return cached[1]
+            result = func(*args, **kwargs)
+            cache[key] = (now, result)
+            return result
+
+        wrapper.cache_clear = cache.clear
+        return wrapper
+    return decorator
 
 
 def get_unique_slug(table, base_slug, exclude_id=None):
@@ -30,6 +52,46 @@ def get_store_settings():
         return {r["key"]: r["value"] for r in rows}
     except Exception:
         return {"cod_enabled": "true", "online_payment_enabled": "false"}
+
+
+@ttl_cache(ttl_seconds=60)
+def get_cached_store_settings():
+    return get_store_settings()
+
+
+def refresh_cart_prices(cart):
+    refreshed = {}
+    subtotal  = 0
+    if not cart:
+        return refreshed, subtotal
+
+    product_ids = list({str(item.get("product_id", "")).strip()
+                        for item in cart.values() if item.get("product_id")})
+    if not product_ids:
+        return refreshed, subtotal
+
+    placeholders = ",".join(["%s"] * len(product_ids))
+    rows = db.query(
+        f"SELECT id, name, sku, price, sale_price, stock_quantity, stock_status "
+        f"FROM products WHERE id IN ({placeholders})",
+        product_ids,
+    )
+    product_map = {str(r["id"]): r for r in rows}
+
+    for key, item in cart.items():
+        product_id = str(item.get("product_id", "")).strip()
+        product    = product_map.get(product_id)
+        if not product:
+            continue
+        price    = float(product.get("sale_price") or product.get("price") or 0)
+        new_item = dict(item)
+        new_item["price"] = price
+        if not new_item.get("sku"):
+            new_item["sku"] = product.get("sku", "")
+        refreshed[key] = new_item
+        subtotal += price * int(new_item.get("qty", 0))
+
+    return refreshed, subtotal
 
 
 # ─── Jinja2 globals / filters ──────────────────────────────────────────────────

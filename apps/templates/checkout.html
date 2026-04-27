@@ -6,7 +6,15 @@
   .checkout-grid {
     display:grid; grid-template-columns:1fr 420px; gap:2rem; align-items:start;
   }
-  @media(max-width:900px) { .checkout-grid { grid-template-columns:1fr; } }
+  @media(max-width:900px) {
+    .checkout-grid { grid-template-columns:1fr; }
+    .order-summary-sticky { position:static !important; }
+  }
+  @media(max-width:520px) {
+    .checkout-outer { padding:1rem 4% 3rem !important; }
+    .checkout-card  { padding:1.25rem !important; border-radius:1rem !important; }
+    .checkout-title { font-size:1.6rem !important; }
+  }
   .field-group { display:flex; flex-direction:column; gap:0.4rem; }
   .field-group label { font-size:0.82rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
   .field-input {
@@ -31,28 +39,54 @@
   .saved-addr-card:hover { border-color:rgba(96,165,250,0.5); }
   .saved-addr-card.selected { border-color:var(--primary); background:rgba(96,165,250,0.06); }
   .cart-summary-item { display:flex; gap:0.875rem; align-items:center; padding:0.75rem 0; border-bottom:1px solid rgba(255,255,255,0.06); }
+
+  /* Coupon */
+  .coupon-row { display:flex; gap:0.5rem; align-items:stretch; }
+  .coupon-row .field-input { border-radius:0.625rem; font-size:0.9rem; padding:0.65rem 0.875rem; }
+  .coupon-btn {
+    padding:0.65rem 1.1rem; background:var(--primary); color:white; border:none;
+    border-radius:0.625rem; font-weight:700; font-size:0.85rem; cursor:pointer;
+    white-space:nowrap; transition:opacity 0.2s; flex-shrink:0;
+  }
+  .coupon-btn:disabled { opacity:0.6; cursor:not-allowed; }
+  .coupon-msg-ok  { font-size:0.82rem; color:#22c55e; margin-top:0.4rem; display:none; }
+  .coupon-msg-err { font-size:0.82rem; color:#f87171; margin-top:0.4rem; display:none; }
+  .coupon-applied-tag {
+    display:none; align-items:center; gap:0.5rem; padding:0.5rem 0.875rem;
+    background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.3);
+    border-radius:0.625rem; font-size:0.85rem; color:#22c55e; margin-top:0.5rem;
+  }
+
+  #rzpError {
+    display:none; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25);
+    border-radius:0.75rem; padding:0.875rem 1.1rem; color:#f87171; font-size:0.875rem; margin-top:0.75rem;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div style="padding:2rem 2% 4rem; max-width:1200px; margin:0 auto; color:var(--text-main);">
+<div class="checkout-outer" style="padding:2rem 2% 4rem; max-width:1200px; margin:0 auto; color:var(--text-main);">
 
   <div style="margin-bottom:1.75rem;">
     <nav style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.75rem;">
       <a href="{{ url_for('cart.view_cart') }}" style="color:var(--text-muted);">← Back to Cart</a>
     </nav>
-    <h1 style="font-size:2rem; font-weight:800; font-family:var(--font-heading);">Checkout</h1>
+    <h1 class="checkout-title" style="font-size:2rem; font-weight:800; font-family:var(--font-heading);">Checkout</h1>
   </div>
 
-  <form method="POST" action="{{ url_for('checkout.checkout') }}" id="checkoutForm">
+  <form method="POST" action="{{ url_for('checkout.checkout') }}" id="checkoutForm" novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <!-- Coupon code is injected here by JS before form submit -->
+    <input type="hidden" name="coupon_code" id="couponCodeHidden" value="" />
+    <input type="hidden" name="saved_address_id" id="savedAddressId" value="" />
+
     <div class="checkout-grid">
 
       <!-- ══ LEFT COLUMN: ADDRESS + PAYMENT ══ -->
       <div style="display:flex; flex-direction:column; gap:1.75rem;">
 
         <!-- Delivery Address -->
-        <div class="glass" style="border-radius:1.5rem; padding:1.75rem;">
+        <div class="glass checkout-card" style="border-radius:1.5rem; padding:1.75rem;">
           <h2 style="font-size:1.15rem; font-weight:700; margin-bottom:1.5rem;">Delivery Address</h2>
 
           {% if addresses %}
@@ -60,9 +94,9 @@
             <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">Select a saved address or enter a new one:</p>
             <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.25rem;" id="savedAddrList">
               {% for addr in addresses %}
-              <div class="saved-addr-card {% if loop.first %}selected{% endif %}"
-                   onclick="selectSavedAddress(this, {{ addr | tojson | safe }})"
-                   data-addr="{{ addr | tojson | safe }}">
+                  <div class="saved-addr-card {% if loop.first %}selected{% endif %}"
+                    onclick='selectSavedAddress(this, {{ addr | tojson | safe }})'
+                    data-addr='{{ addr | tojson | safe }}'>
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
                   <span style="font-weight:700; font-size:0.9rem; color:var(--primary);">{{ addr.label }}</span>
                   {% if addr.is_default %}<span style="font-size:0.7rem; background:var(--primary); color:white; padding:0.15rem 0.5rem; border-radius:999px; font-weight:700;">Default</span>{% endif %}
@@ -136,17 +170,24 @@
         </div>
 
         <!-- Payment Method -->
-        <div class="glass" style="border-radius:1.5rem; padding:1.75rem;">
+        <div class="glass checkout-card" style="border-radius:1.5rem; padding:1.75rem;">
           <h2 style="font-size:1.15rem; font-weight:700; margin-bottom:1.5rem;">Payment Method</h2>
 
           <div style="display:flex; flex-direction:column; gap:0.875rem;">
-            {% if settings.razorpay_key_id %}
+
+            {% set razorpay_ready = online_enabled and settings.razorpay_key_id and settings.razorpay_key_secret %}
+
+            {% if razorpay_ready %}
             <label class="payment-option">
-              <input type="radio" name="payment_method" value="razorpay" checked onchange="toggleOnlineDetails(false)" />
-              <div style="display:flex; align-items:center; gap:0.75rem;">
-                <div style="flex:1;">
-                  <div style="font-weight:700; margin-bottom:0.25rem;">Online Payment (Razorpay)</div>
-                  <div style="font-size:0.85rem; color:var(--text-muted);">Securely pay with Cards, UPI, Wallets or NetBanking.</div>
+              <input type="radio" name="payment_method" value="razorpay" checked />
+              <div style="display:flex; align-items:center; gap:0.75rem; flex:1; min-width:0;">
+                <div style="flex:1; min-width:0;">
+                  <div style="font-weight:700; margin-bottom:0.25rem;">Online Payment (UPI / Bank)</div>
+                  <div style="font-size:0.85rem; color:var(--text-muted);">Pay securely via UPI, Debit/Credit Card, or NetBanking through Razorpay.</div>
+                </div>
+                <div style="display:flex; gap:0.4rem; flex-shrink:0; opacity:0.7;">
+                  <span style="font-size:0.7rem; background:rgba(96,165,250,0.15); border:1px solid rgba(96,165,250,0.3); border-radius:4px; padding:0.15rem 0.4rem; color:var(--primary); font-weight:700;">UPI</span>
+                  <span style="font-size:0.7rem; background:rgba(96,165,250,0.15); border:1px solid rgba(96,165,250,0.3); border-radius:4px; padding:0.15rem 0.4rem; color:var(--primary); font-weight:700;">CARD</span>
                 </div>
               </div>
             </label>
@@ -154,7 +195,8 @@
 
             {% if cod_enabled %}
             <label class="payment-option">
-              <input type="radio" name="payment_method" value="cod" {% if not settings.razorpay_key_id %}checked{% endif %} onchange="toggleOnlineDetails(false)" />
+              <input type="radio" name="payment_method" value="cod"
+                     {% if not razorpay_ready %}checked{% endif %} />
               <div>
                 <div style="font-weight:700; margin-bottom:0.25rem;">Cash on Delivery (COD)</div>
                 <div style="font-size:0.85rem; color:var(--text-muted);">Pay in cash when your order arrives.</div>
@@ -162,48 +204,14 @@
             </label>
             {% endif %}
 
-            {% if online_enabled %}
-            <label class="payment-option" id="onlinePaymentOption">
-              <input type="radio" name="payment_method" value="online" onchange="toggleOnlineDetails(true)" />
-              <div>
-                <div style="font-weight:700; margin-bottom:0.25rem;">Manual Bank Transfer</div>
-                <div style="font-size:0.85rem; color:var(--text-muted);">Transfer manually to our bank/UPI and share receipt.</div>
-              </div>
-            </label>
-            {% if cod_enabled or settings.razorpay_key_id %}
-            <script>
-              document.querySelectorAll('input[name="payment_method"]').forEach(inp => {
-                if(inp.value !== 'online') inp.addEventListener('change', function(){ toggleOnlineDetails(false); });
-              });
-            </script>
-            {% endif %}
-
-            <div id="onlinePaymentDetails" style="display:none; background:rgba(96,165,250,0.06); border:1px solid rgba(96,165,250,0.2); border-radius:0.875rem; padding:1.25rem; margin-top:0.25rem;">
-              <p style="font-size:0.85rem; font-weight:600; color:var(--primary); margin-bottom:0.875rem;">Payment Details</p>
-              {% if settings.upi_id %}
-              <div style="margin-bottom:0.625rem; font-size:0.9rem;">
-                <span style="color:var(--text-muted);">UPI ID:</span>
-                <span style="font-weight:700; margin-left:0.5rem; font-family:monospace;">{{ settings.upi_id }}</span>
-              </div>
-              {% endif %}
-              {% if settings.bank_name %}
-              <div style="margin-bottom:0.3rem; font-size:0.9rem;"><span style="color:var(--text-muted);">Bank:</span> <span style="font-weight:600; margin-left:0.5rem;">{{ settings.bank_name }}</span></div>
-              {% endif %}
-              {% if settings.bank_account %}
-              <div style="margin-bottom:0.3rem; font-size:0.9rem;"><span style="color:var(--text-muted);">Account No:</span> <span style="font-weight:600; margin-left:0.5rem; font-family:monospace;">{{ settings.bank_account }}</span></div>
-              {% endif %}
-              {% if settings.bank_ifsc %}
-              <div style="font-size:0.9rem;"><span style="color:var(--text-muted);">IFSC:</span> <span style="font-weight:600; margin-left:0.5rem; font-family:monospace;">{{ settings.bank_ifsc }}</span></div>
-              {% endif %}
-              <p style="margin-top:0.875rem; font-size:0.8rem; color:var(--text-muted);">Please transfer the exact amount and mention your name as reference. Your order will be processed after payment confirmation.</p>
-            </div>
-            {% endif %}
-
-            {% if not cod_enabled and not online_enabled %}
+            {% if not cod_enabled and not razorpay_ready %}
             <div style="padding:1rem; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.2); border-radius:0.75rem; color:#f87171; font-size:0.9rem;">
               No payment methods are currently enabled. Please contact us to place your order.
             </div>
             {% endif %}
+
+            <!-- Razorpay error display -->
+            <div id="rzpError"></div>
           </div>
 
           <!-- Order Notes -->
@@ -216,15 +224,16 @@
       </div>
 
       <!-- ══ RIGHT COLUMN: ORDER SUMMARY ══ -->
-      <div style="position:sticky; top:90px;">
-        <div class="glass" style="border-radius:1.5rem; padding:1.75rem;">
+      <div class="order-summary-sticky" style="position:sticky; top:90px;">
+        <div class="glass checkout-card" style="border-radius:1.5rem; padding:1.75rem;">
           <h2 style="font-size:1.15rem; font-weight:700; margin-bottom:1.5rem;">Order Summary</h2>
 
-          <div style="margin-bottom:1.5rem;">
+          <!-- Cart items -->
+          <div style="margin-bottom:1.25rem;">
             {% for pid, item in cart.items() %}
             <div class="cart-summary-item">
               <div style="width:52px; height:52px; background:white; border-radius:0.5rem; overflow:hidden; flex-shrink:0; display:flex; align-items:center; justify-content:center; padding:0.25rem;">
-                <img src="{{ resolve_image(item.image) }}" alt="{{ item.name }}" style="width:100%; height:100%; object-fit:contain;" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}'" />
+                <img src="{{ resolve_image(item.image) }}" alt="{{ item.name }}" style="width:100%; height:100%; object-fit:contain;" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}'" />
               </div>
               <div style="flex:1; min-width:0;">
                 <div style="font-size:0.875rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ item.name }}</div>
@@ -235,8 +244,24 @@
             {% endfor %}
           </div>
 
+          <!-- Coupon Code -->
+          <div style="padding:1rem 0; border-top:1px solid var(--border-glass); margin-bottom:0.5rem;">
+            <div style="font-size:0.82rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">Have a coupon?</div>
+            <div class="coupon-row" id="couponInputRow">
+              <input type="text" id="couponInput" class="field-input" placeholder="Enter coupon code" autocomplete="off" style="text-transform:uppercase;" />
+              <button type="button" class="coupon-btn" id="couponApplyBtn" onclick="applyCoupon()">Apply</button>
+            </div>
+            <div class="coupon-msg-ok"  id="couponOkMsg"></div>
+            <div class="coupon-msg-err" id="couponErrMsg"></div>
+            <div class="coupon-applied-tag" id="couponAppliedTag">
+              <span>🎁</span>
+              <span id="couponAppliedLabel"></span>
+              <button type="button" onclick="removeCoupon()" style="margin-left:auto; background:none; border:none; color:#f87171; font-size:0.8rem; cursor:pointer; font-weight:700; padding:0;">Remove</button>
+            </div>
+          </div>
+
           <!-- Totals -->
-          <div style="display:flex; flex-direction:column; gap:0.625rem; padding-top:1rem; border-top:1px solid var(--border-glass);">
+          <div style="display:flex; flex-direction:column; gap:0.625rem; padding-top:0.75rem; border-top:1px solid var(--border-glass);">
             <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--text-muted);">
               <span>Subtotal</span>
               <span style="color:var(--text-main);">₹{{ "%.0f"|format(subtotal) }}</span>
@@ -248,15 +273,22 @@
               </span>
             </div>
             {% if shipping > 0 %}
-            <p style="font-size:0.78rem; color:var(--text-muted);">Add ₹{{ "%.0f"|format(999 - subtotal) }} more for free shipping</p>
+            <p style="font-size:0.78rem; color:var(--text-muted); margin:0;">Add ₹{{ "%.0f"|format(999 - subtotal) }} more for free shipping</p>
             {% endif %}
+            <!-- Discount row (hidden until coupon applied) -->
+            <div id="discountRow" style="display:none; justify-content:space-between; font-size:0.9rem; color:#22c55e;">
+              <span id="discountLabel">Discount</span>
+              <span id="discountAmount">–₹0</span>
+            </div>
             <div style="display:flex; justify-content:space-between; font-weight:800; font-size:1.2rem; padding-top:0.75rem; border-top:1px solid var(--border-glass); margin-top:0.25rem;">
               <span>Total</span>
-              <span style="color:var(--primary);">₹{{ "%.0f"|format(total) }}</span>
+              <span style="color:var(--primary);" id="totalDisplay">₹{{ "%.0f"|format(total) }}</span>
             </div>
           </div>
 
-          <button type="submit" style="width:100%; margin-top:1.5rem; padding:1.1rem; background:var(--primary); color:white; border:none; border-radius:0.875rem; font-weight:800; font-size:1.05rem; cursor:pointer; transition:opacity 0.2s; letter-spacing:0.02em;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+          <button type="submit" id="placeOrderBtn"
+            style="width:100%; margin-top:1.5rem; padding:1.1rem; background:var(--primary); color:white; border:none; border-radius:0.875rem; font-weight:800; font-size:1.05rem; cursor:pointer; transition:opacity 0.2s; letter-spacing:0.02em;"
+            onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
             Place Order →
           </button>
           <a href="{{ url_for('cart.view_cart') }}" style="display:block; text-align:center; margin-top:0.875rem; color:var(--text-muted); font-size:0.875rem;">← Edit Cart</a>
@@ -269,49 +301,76 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-  function toggleOnlineDetails(show) {
-    const el = document.getElementById('onlinePaymentDetails');
-    if (el) el.style.display = show ? 'block' : 'none';
-  }
+{% if online_enabled and settings.razorpay_key_id %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+{% endif %}
 
-  // Saved address selection
+<script>
+  // ── State ────────────────────────────────────────────────────────────────
+  let currentTotal    = {{ total }};
+  let appliedCoupon   = '';
+  let appliedDiscount = 0;
+
+  // ── Saved address selection ───────────────────────────────────────────────
   const savedAddrFields = {
     addr_first_name: 'first_name',
-    addr_last_name: 'last_name',
-    addr_phone: 'phone',
-    addr_line1: 'address_line1',
-    addr_line2: 'address_line2',
-    addr_city: 'city',
-    addr_state: 'state',
-    addr_pincode: 'pincode',
-    addr_country: 'country',
+    addr_last_name:  'last_name',
+    addr_phone:      'phone',
+    addr_line1:      'address_line1',
+    addr_line2:      'address_line2',
+    addr_city:       'city',
+    addr_state:      'state',
+    addr_pincode:    'pincode',
+    addr_country:    'country',
   };
 
   function selectSavedAddress(cardEl, addrData) {
     document.querySelectorAll('.saved-addr-card').forEach(c => c.classList.remove('selected'));
     cardEl.classList.add('selected');
-    // Show address form pre-filled
+    document.getElementById('savedAddressId').value = addrData.id || '';
     const form = document.getElementById('addressForm');
-    form.style.display = 'block';
-    for (const [fieldId, addrKey] of Object.entries(savedAddrFields)) {
-      const el = document.getElementById(fieldId);
-      if (el) el.value = addrData[addrKey] || '';
-    }
+    if (form) form.style.display = 'none';
   }
 
   function selectNewAddress() {
     document.querySelectorAll('.saved-addr-card').forEach(c => c.classList.remove('selected'));
     document.getElementById('newAddrOption').classList.add('selected');
+    document.getElementById('savedAddressId').value = '';
     const form = document.getElementById('addressForm');
-    form.style.display = 'block';
+    if (form) form.style.display = 'block';
     for (const fieldId of Object.keys(savedAddrFields)) {
       const el = document.getElementById(fieldId);
       if (el) el.value = fieldId === 'addr_country' ? 'India' : '';
     }
   }
 
-  // Auto-select first saved address on load
+  function validateAddressFields() {
+    const savedAddressId = document.getElementById('savedAddressId')?.value || '';
+    if (savedAddressId) {
+      return true;
+    }
+    const requiredFields = ['addr_first_name', 'addr_phone', 'addr_line1', 'addr_city', 'addr_pincode'];
+    for (const fieldId of requiredFields) {
+      const el = document.getElementById(fieldId);
+      if (!el || !String(el.value || '').trim()) {
+        const form = document.getElementById('addressForm');
+        if (form) form.style.display = 'block';
+        if (el) {
+          el.focus();
+          el.style.borderColor = '#f87171';
+        }
+        const errBox = document.getElementById('rzpError');
+        if (errBox) {
+          errBox.textContent = 'Please fill in all required address fields before continuing.';
+          errBox.style.display = 'block';
+          errBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        return false;
+      }
+    }
+    return true;
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
     const firstCard = document.querySelector('#savedAddrList .saved-addr-card:not(#newAddrOption)');
     if (firstCard) {
@@ -321,70 +380,218 @@
       } catch(e) {}
     }
   });
-</script>
 
-<!-- Razorpay SDK -->
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script>
-  // Handle Razorpay Payment flow
-  const checkoutForm = document.getElementById('checkoutForm');
-  checkoutForm.addEventListener('submit', async function(e) {
-    const method = document.querySelector('input[name="payment_method"]:checked')?.value;
-    if (method !== 'razorpay') return; // Let default form submission happen for COD/Manual
-    
-    e.preventDefault();
-    
-    // 1. Basic validation
-    if (!checkoutForm.checkValidity()) {
-       checkoutForm.reportValidity();
-       return;
+  // ── Coupon ────────────────────────────────────────────────────────────────
+  function applyCoupon() {
+    const code = document.getElementById('couponInput').value.trim().toUpperCase();
+    if (!code) {
+      showCouponErr('Please enter a coupon code.');
+      return;
     }
 
-    // 2. Create Razorpay Order on server
-    try {
-      const resp = await fetch('/razorpay/create_order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-           amount: {{ total }}
-        })
-      });
-      const data = await resp.json();
-      if (!data.success) throw new Error(data.message || 'Failed to create order');
+    const btn = document.getElementById('couponApplyBtn');
+    btn.disabled    = true;
+    btn.textContent = 'Checking…';
+    clearCouponMsgs();
 
-      const options = {
-        key: "{{ settings.razorpay_key_id }}",
-        amount: data.order.amount,
-        currency: "INR",
-        name: "ChasmaGallery",
-        description: "Order Payment",
-        order_id: data.order.id,
-        handler: function (response){
-           // Submit form with payment details
-           const rzpId = document.createElement('input');
-           rzpId.type = 'hidden'; rzpId.name = 'razorpay_payment_id'; rzpId.value = response.razorpay_payment_id;
-           const rzpOrderId = document.createElement('input');
-           rzpOrderId.type = 'hidden'; rzpOrderId.name = 'razorpay_order_id'; rzpOrderId.value = response.razorpay_order_id;
-           const rzpSig = document.createElement('input');
-           rzpSig.type = 'hidden'; rzpSig.name = 'razorpay_signature'; rzpSig.value = response.razorpay_signature;
-           
-           checkoutForm.appendChild(rzpId);
-           checkoutForm.appendChild(rzpOrderId);
-           checkoutForm.appendChild(rzpSig);
-           
-           checkoutForm.submit();
-        },
-        prefill: {
-          name: document.getElementById('addr_first_name').value + ' ' + document.getElementById('addr_last_name').value,
-          contact: document.getElementById('addr_phone').value
-        },
-        theme: { color: "#6366f1" }
-      };
-      const rzp = new Razorpay(options);
-      rzp.open();
-    } catch(err) {
-      alert("Payment Error: " + err.message);
+    fetch('/apply_coupon', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ coupon_code: code, subtotal: {{ subtotal }} }),
+    })
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled    = false;
+      btn.textContent = 'Apply';
+      if (data.valid) {
+        appliedCoupon   = code;
+        appliedDiscount = data.discount_amount;
+        currentTotal    = data.new_total;
+        document.getElementById('couponCodeHidden').value = code;
+        showCouponOk(data.message || `Coupon applied! You save ₹${Math.round(data.discount_amount)}`);
+        showCouponAppliedTag(code, data.discount_amount);
+        updateDiscountRow(code, data.discount_amount, data.new_total);
+        document.getElementById('couponInputRow').style.display = 'none';
+      } else {
+        showCouponErr(data.error || 'Invalid coupon code.');
+      }
+    })
+    .catch(() => {
+      btn.disabled    = false;
+      btn.textContent = 'Apply';
+      showCouponErr('Could not verify coupon. Please try again.');
+    });
+  }
+
+  function removeCoupon() {
+    appliedCoupon   = '';
+    appliedDiscount = 0;
+    currentTotal    = {{ total }};
+    document.getElementById('couponCodeHidden').value = '';
+    document.getElementById('couponInput').value      = '';
+    document.getElementById('discountRow').style.display  = 'none';
+    document.getElementById('couponAppliedTag').style.display = 'none';
+    document.getElementById('couponInputRow').style.display   = 'flex';
+    document.getElementById('totalDisplay').textContent = '₹' + Math.round(currentTotal);
+    clearCouponMsgs();
+  }
+
+  function showCouponOk(msg) {
+    const el = document.getElementById('couponOkMsg');
+    el.textContent    = msg;
+    el.style.display  = 'block';
+  }
+
+  function showCouponErr(msg) {
+    const el = document.getElementById('couponErrMsg');
+    el.textContent    = msg;
+    el.style.display  = 'block';
+  }
+
+  function clearCouponMsgs() {
+    document.getElementById('couponOkMsg').style.display  = 'none';
+    document.getElementById('couponErrMsg').style.display = 'none';
+  }
+
+  function showCouponAppliedTag(code, discount) {
+    const tag = document.getElementById('couponAppliedTag');
+    document.getElementById('couponAppliedLabel').textContent = `${code} – saving ₹${Math.round(discount)}`;
+    tag.style.display = 'flex';
+  }
+
+  function updateDiscountRow(code, discount, newTotal) {
+    const row = document.getElementById('discountRow');
+    document.getElementById('discountLabel').textContent  = `Discount (${code})`;
+    document.getElementById('discountAmount').textContent = `–₹${Math.round(discount)}`;
+    row.style.display = 'flex';
+    document.getElementById('totalDisplay').textContent = '₹' + Math.round(newTotal);
+  }
+
+  // Also apply coupon on Enter key in coupon input
+  document.addEventListener('DOMContentLoaded', function() {
+    const inp = document.getElementById('couponInput');
+    if (inp) {
+      inp.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); applyCoupon(); }
+      });
     }
   });
+
+  // ── Razorpay Payment Flow ─────────────────────────────────────────────────
+  {% if online_enabled and settings.razorpay_key_id %}
+  const RZP_KEY_ID = {{ settings.razorpay_key_id | tojson }};
+  const CSRF_TOKEN = document.querySelector('input[name="csrf_token"]').value;
+
+  function showRzpError(msg) {
+    const el = document.getElementById('rzpError');
+    el.textContent   = msg;
+    el.style.display = 'block';
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function hideRzpError() {
+    const el = document.getElementById('rzpError');
+    el.style.display = 'none';
+    el.textContent   = '';
+  }
+
+  function setButtonLoading(loading) {
+    const btn        = document.getElementById('placeOrderBtn');
+    btn.disabled     = loading;
+    btn.textContent  = loading ? 'Processing…' : 'Place Order →';
+    btn.style.opacity = loading ? '0.7' : '1';
+  }
+
+  const checkoutForm = document.getElementById('checkoutForm');
+  checkoutForm.addEventListener('submit', function(e) {
+    if (!validateAddressFields()) {
+      e.preventDefault();
+      return;
+    }
+
+    const method = document.querySelector('input[name="payment_method"]:checked')?.value;
+    if (method !== 'razorpay') return; // COD — native form submit proceeds
+
+    // Stop native submission; handle via Razorpay SDK
+    e.preventDefault();
+    hideRzpError();
+    setButtonLoading(true);
+    handleRazorpay();
+  });
+
+  async function handleRazorpay() {
+
+    try {
+      // Step 1: Create Razorpay order server-side (with coupon already applied)
+      const resp = await fetch('/razorpay/create_order', {
+        method:  'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken':  CSRF_TOKEN,
+        },
+        body: JSON.stringify({
+          amount:      currentTotal,
+          coupon_code: appliedCoupon,
+        }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.message || `Server error (${resp.status})`);
+      }
+
+      const data = await resp.json();
+      if (!data.success) throw new Error(data.message || 'Could not create payment order.');
+
+      // Step 2: Open Razorpay checkout
+      const options = {
+        key:         RZP_KEY_ID,
+        amount:      data.order.amount,
+        currency:    'INR',
+        name:        'ChasmaGallery',
+        description: 'Order Payment',
+        order_id:    data.order.id,
+        prefill: {
+          name:    (document.getElementById('addr_first_name').value + ' ' +
+                    document.getElementById('addr_last_name').value).trim(),
+          contact:  document.getElementById('addr_phone').value,
+        },
+        theme: { color: '#6366f1' },
+
+        handler: function(response) {
+          ['razorpay_payment_id', 'razorpay_order_id', 'razorpay_signature'].forEach(function(key) {
+            const inp   = document.createElement('input');
+            inp.type    = 'hidden';
+            inp.name    = key;
+            inp.value   = response[key];
+            checkoutForm.appendChild(inp);
+          });
+          checkoutForm.submit();
+        },
+
+        modal: {
+          ondismiss: function() {
+            setButtonLoading(false);
+            showRzpError('Payment cancelled. You can try again or choose Cash on Delivery.');
+          },
+        },
+      };
+
+      const rzp = new Razorpay(options);
+
+      rzp.on('payment.failed', function(response) {
+        setButtonLoading(false);
+        const reason = response.error?.description || response.error?.reason || 'Payment failed.';
+        showRzpError('Payment failed: ' + reason + '. Please try again or use a different method.');
+      });
+
+      rzp.open();
+
+    } catch (err) {
+      setButtonLoading(false);
+      showRzpError('Could not initiate payment: ' + err.message);
+    }
+  }
+  {% endif %}
 </script>
 {% endblock %}

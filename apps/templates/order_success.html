@@ -117,7 +117,7 @@
   {% if order.payment_method == 'cod' %}
   <div style="background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.25); border-radius:1rem; padding:1rem 1.25rem; margin-bottom:1.5rem; font-size:0.88rem; color:#fbbf24; display:flex; gap:0.75rem; align-items:flex-start;">
     <span style="font-size:1.1rem; flex-shrink:0;">💰</span>
-    <span>This is a Cash on Delivery order. Please keep the exact amount ready at the time of delivery.</span>
+    <span>This is a Cash on Delivery order. Amount due at delivery: ₹{{ "%.0f"|format(order.total_amount) }}.</span>
   </div>
   {% endif %}
 

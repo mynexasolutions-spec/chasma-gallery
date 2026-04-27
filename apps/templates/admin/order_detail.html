@@ -83,6 +83,13 @@
         </select>
         <button type="submit" class="admin-btn btn-primary" style="justify-content:center; width:100%;">Update Status</button>
       </form>
+      {% if order.status == 'cancelled' %}
+      <div style="margin-top:1rem; padding:1rem; border-radius:0.75rem; background:#fff7ed; border:1px solid #fdba74; color:#9a3412; font-size:0.875rem;">
+        <div style="font-weight:700; margin-bottom:0.35rem;">Cancelled order</div>
+        {% if order.cancel_reason %}<div>Reason: {{ order.cancel_reason }}</div>{% endif %}
+        {% if order.cancelled_at %}<div>Cancelled at: {{ order.cancelled_at.strftime('%d %b %Y, %I:%M %p') }}</div>{% endif %}
+      </div>
+      {% endif %}
     </div>
   </div>
 

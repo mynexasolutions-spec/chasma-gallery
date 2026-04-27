@@ -2,192 +2,451 @@
 
 {% block title %}Shop – ChasmaGallery{% endblock %}
 
+{% block extra_css %}
+<style>
+/* ── Sidebar checkbox items ─────────────────────────────────── */
+.cb-item {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.45rem 0.5rem; border-radius: 0.5rem; cursor: pointer;
+  font-size: 0.875rem; color: var(--text-muted); transition: background 0.15s;
+  user-select: none; line-height: 1.3;
+}
+.cb-item:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+.cb-item input[type="checkbox"] { display: none; }
+.cb-box {
+  width: 17px; height: 17px; border: 2px solid rgba(255,255,255,0.25);
+  border-radius: 4px; flex-shrink: 0; display: flex; align-items: center;
+  justify-content: center; transition: border-color 0.15s, background 0.15s;
+}
+.cb-item input:checked ~ .cb-box {
+  background: var(--primary); border-color: var(--primary);
+}
+.cb-item input:checked ~ .cb-box::after {
+  content: ''; display: block; width: 5px; height: 9px;
+  border: 2px solid white; border-top: none; border-left: none;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.cb-item input:checked ~ .cb-label { color: var(--text-main); font-weight: 600; }
+.cb-label { flex: 1; }
+.cb-count {
+  font-size: 0.75rem; color: var(--text-muted); background: rgba(255,255,255,0.07);
+  padding: 0.1rem 0.45rem; border-radius: 999px; flex-shrink: 0;
+}
+
+/* ── Category accordion ─────────────────────────────────────── */
+.cat-group { margin-bottom: 0.15rem; }
+.cat-parent-row {
+  display: flex; align-items: center; gap: 0.25rem;
+}
+.cat-parent-row .cb-item { flex: 1; }
+.cat-chevron {
+  width: 26px; height: 26px; flex-shrink: 0; border: none; background: none;
+  color: var(--text-muted); cursor: pointer; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s, background 0.15s; padding: 0;
+}
+.cat-chevron:hover { background: rgba(255,255,255,0.07); color: var(--text-main); }
+.cat-chevron svg { transition: transform 0.2s; }
+.cat-chevron.open svg { transform: rotate(90deg); }
+.cat-children {
+  display: none; padding-left: 1.4rem; margin-top: 0.15rem;
+}
+.cat-children.open { display: block; }
+
+/* ── Filter chips ───────────────────────────────────────────── */
+.filter-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+.filter-chip {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: rgba(96,165,250,0.12); border: 1px solid rgba(96,165,250,0.3);
+  color: var(--primary); border-radius: 999px; padding: 0.3rem 0.75rem;
+  font-size: 0.8rem; font-weight: 600;
+}
+.filter-chip button {
+  background: none; border: none; color: var(--primary); cursor: pointer;
+  font-size: 1rem; line-height: 1; padding: 0; opacity: 0.7;
+  display: flex; align-items: center;
+}
+.filter-chip button:hover { opacity: 1; }
+
+/* ── Apply / Clear buttons ──────────────────────────────────── */
+.sidebar-actions { display: flex; gap: 0.6rem; margin-top: 1.25rem; }
+.btn-apply {
+  flex: 1; padding: 0.7rem 0; background: var(--primary); color: white;
+  border: none; border-radius: 0.6rem; font-weight: 700; font-size: 0.875rem;
+  cursor: pointer; transition: opacity 0.2s;
+}
+.btn-apply:hover { opacity: 0.88; }
+.btn-clear {
+  padding: 0.7rem 0.9rem; background: rgba(239,68,68,0.1); color: #ef4444;
+  border: 1px solid rgba(239,68,68,0.25); border-radius: 0.6rem;
+  font-weight: 600; font-size: 0.875rem; cursor: pointer;
+  text-decoration: none; display: inline-flex; align-items: center;
+  transition: background 0.15s;
+}
+.btn-clear:hover { background: rgba(239,68,68,0.18); }
+
+/* ── Section divider ────────────────────────────────────────── */
+.sidebar-divider {
+  border: none; border-top: 1px solid rgba(255,255,255,0.07); margin: 1.1rem 0;
+}
+.sidebar-section-label {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 0.6rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+</style>
+{% endblock %}
+
 {% block content %}
+
+<!-- Top category icon nav -->
 <div style="padding: 2.5rem 2% 0; max-width:1400px; margin:0 auto;">
   <div class="shop-category-nav section-fade visible">
-    {% for cat in categories if not cat.parent_id %}
-    <a href="{{ url_for('public.shop', category=cat.slug) }}" class="shop-cat-item {% if current_category == cat.slug %}active{% endif %}">
+    {% for cat in parent_cats %}
+    <button type="button"
+            onclick="topNavToggle('{{ cat.slug }}')"
+            class="shop-cat-item {% if cat.slug in current_categories %}active{% endif %}"
+            style="background:none; border:none; cursor:pointer;">
       <div class="shop-cat-img glass">
-        <img src="{{ resolve_image(cat.img) }}" alt="{{ cat.name }}" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}';" />
+        <img src="{{ resolve_image(cat.img) }}" alt="{{ cat.name }}"
+             onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}';" />
       </div>
       <span class="shop-cat-label">{{ cat.name }}</span>
-    </a>
+    </button>
     {% endfor %}
   </div>
 </div>
 
 <div class="shop-layout" style="padding-top:1rem;">
-  <!-- SIDEBAR -->
+
+  <!-- ══ SIDEBAR ══ -->
   <aside class="shop-sidebar">
     <button class="glass shop-filter-btn" id="shopFilterBtn" onclick="toggleShopFilter()">
       <span>🔍 Filters</span>
       <span id="shopFilterArrow">▼</span>
     </button>
+
     <div class="shop-sidebar-content" id="shopSidebarContent">
-    <div class="glass" style="border-radius:1.5rem; padding:1.8rem;">
+    <div class="glass" style="border-radius:1.5rem; padding:1.6rem;">
+
       <form method="get" action="{{ url_for('public.shop') }}" id="filterForm">
-        
-        <!-- Search -->
-        <div class="sidebar-section">
-          <label>Search</label>
-          <input type="text" name="search" value="{{ search or '' }}" placeholder="Search products..." onchange="this.form.submit()" />
+        <!-- Hidden fields preserved across submissions -->
+        <input type="hidden" name="page"  id="pageInput"  value="1" />
+        <input type="hidden" name="sort"  id="sortInput"  value="{{ current_sort }}" />
+        <input type="hidden" name="shape" id="shapeInput" value="{{ current_shape }}" />
+
+        <!-- ── Search ─────────────────────────────────────── -->
+        <div style="margin-bottom:1.1rem;">
+          <div class="sidebar-section-label">Search</div>
+          <input type="text" name="search" id="searchInput" value="{{ search or '' }}"
+                 placeholder="Search products…"
+                 style="width:100%; padding:0.6rem 0.85rem; background:rgba(255,255,255,0.05);
+                        border:1px solid var(--border-glass); border-radius:0.55rem;
+                        color:var(--text-main); font-size:0.9rem; outline:none;
+                        font-family:inherit; box-sizing:border-box;"
+                 onkeydown="if(event.key==='Enter'){applyFilters();}" />
         </div>
 
-        <!-- Sort -->
-        <div class="sidebar-section">
-          <label>Sort By</label>
-          <select name="sort" onchange="this.form.submit()">
-            <option value="created_at_desc" {% if current_sort == 'created_at_desc' %}selected{% endif %}>Newest First</option>
-            <option value="price_asc" {% if current_sort == 'price_asc' %}selected{% endif %}>Price: Low to High</option>
-            <option value="price_desc" {% if current_sort == 'price_desc' %}selected{% endif %}>Price: High to Low</option>
-            <option value="name_asc" {% if current_sort == 'name_asc' %}selected{% endif %}>Name A–Z</option>
+        <!-- ── Sort ──────────────────────────────────────── -->
+        <div style="margin-bottom:1.1rem;">
+          <div class="sidebar-section-label">Sort By</div>
+          <select id="sortSelect" onchange="document.getElementById('sortInput').value=this.value; applyFilters();"
+                  style="width:100%; padding:0.6rem 0.85rem; background:rgba(255,255,255,0.05);
+                         border:1px solid var(--border-glass); border-radius:0.55rem;
+                         color:var(--text-main); font-size:0.875rem; outline:none;
+                         font-family:inherit; box-sizing:border-box; cursor:pointer;">
+            <option value="created_at_desc" {% if current_sort=='created_at_desc' %}selected{% endif %}>Newest First</option>
+            <option value="price_asc"       {% if current_sort=='price_asc'       %}selected{% endif %}>Price: Low to High</option>
+            <option value="price_desc"      {% if current_sort=='price_desc'      %}selected{% endif %}>Price: High to Low</option>
+            <option value="name_asc"        {% if current_sort=='name_asc'        %}selected{% endif %}>Name A–Z</option>
           </select>
         </div>
 
-        <!-- Categories -->
-        <div class="sidebar-section">
-          <label>Category</label>
-          <div class="filter-group">
-            <a href="{{ url_for('public.shop', search=search, brand=current_brand, sort=current_sort) }}" class="filter-item {% if not current_category %}active{% endif %}">
-              <div class="check"></div>
-              <span class="label-text">All Categories</span>
-            </a>
-            {% for cat in categories %}
-            <a href="{{ url_for('public.shop', category=cat.slug, search=search, brand=current_brand, sort=current_sort) }}" class="filter-item {% if current_category == cat.slug %}active{% endif %}">
-              <div class="check"></div>
-              <span class="label-text">{{ cat.name }}</span>
-              <span class="count">{{ cat.product_count }}</span>
-            </a>
-            {% endfor %}
+        <hr class="sidebar-divider" />
+
+        <!-- ── Categories (accordion) ────────────────────── -->
+        <div style="margin-bottom:1.1rem;">
+          <div class="sidebar-section-label">
+            Category
+            {% if current_categories %}
+            <span style="background:var(--primary); color:white; border-radius:999px;
+                         padding:0.05rem 0.5rem; font-size:0.7rem;">{{ current_categories|length }}</span>
+            {% endif %}
           </div>
+
+          {% for parent in parent_cats %}
+          {% set p_id   = parent.id | string %}
+          {% set p_slug = parent.slug %}
+          {% set p_checked = p_slug in current_categories %}
+          {% set children  = children_map.get(p_id, []) %}
+          {% set any_child_checked = children | selectattr('slug', 'in', current_categories) | list | length > 0 %}
+
+          <div class="cat-group">
+            <div class="cat-parent-row">
+              <label class="cb-item" style="flex:1;">
+                <input type="checkbox" name="category" value="{{ p_slug }}"
+                       {% if p_checked %}checked{% endif %}
+                       onchange="applyFilters();" />
+                <span class="cb-box"></span>
+                <span class="cb-label">{{ parent.name }}</span>
+                <span class="cb-count">{{ parent.product_count }}</span>
+              </label>
+
+              {% if children %}
+              <button type="button"
+                      class="cat-chevron {% if p_checked or any_child_checked %}open{% endif %}"
+                      onclick="toggleCatGroup(this)"
+                      aria-label="Expand {{ parent.name }}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2.5"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </button>
+              {% endif %}
+            </div>
+
+            {% if children %}
+            <div class="cat-children {% if p_checked or any_child_checked %}open{% endif %}">
+              {% for child in children %}
+              <label class="cb-item">
+                <input type="checkbox" name="category" value="{{ child.slug }}"
+                       {% if child.slug in current_categories %}checked{% endif %}
+                       onchange="applyFilters();" />
+                <span class="cb-box"></span>
+                <span class="cb-label">{{ child.name }}</span>
+                <span class="cb-count">{{ child.product_count }}</span>
+              </label>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
         </div>
 
-        <!-- Brands -->
-        <div class="sidebar-section">
-          <label>Brand</label>
-          <div class="filter-group">
-            <a href="{{ url_for('public.shop', search=search, category=current_category, sort=current_sort) }}" class="filter-item {% if not current_brand %}active{% endif %}">
-              <div class="check"></div>
-              <span class="label-text">All Brands</span>
-            </a>
-            {% for b in brands %}
-            <a href="{{ url_for('public.shop', brand=b.slug, search=search, category=current_category, sort=current_sort) }}" class="filter-item {% if current_brand == b.slug %}active{% endif %}">
-              <div class="check"></div>
-              <span class="label-text">{{ b.name }}</span>
-              <span class="count">{{ b.product_count }}</span>
-            </a>
-            {% endfor %}
+        <hr class="sidebar-divider" />
+
+        <!-- ── Brands ─────────────────────────────────────── -->
+        <div style="margin-bottom:0.5rem;">
+          <div class="sidebar-section-label">
+            Brand
+            {% if current_brands %}
+            <span style="background:var(--primary); color:white; border-radius:999px;
+                         padding:0.05rem 0.5rem; font-size:0.7rem;">{{ current_brands|length }}</span>
+            {% endif %}
           </div>
+
+          {% for b in brands %}
+          <label class="cb-item">
+            <input type="checkbox" name="brand" value="{{ b.slug }}"
+                   {% if b.slug in current_brands %}checked{% endif %}
+                   onchange="applyFilters();" />
+            <span class="cb-box"></span>
+            <span class="cb-label">{{ b.name }}</span>
+            <span class="cb-count">{{ b.product_count }}</span>
+          </label>
+          {% endfor %}
         </div>
 
-        {% if search or current_category or current_brand or current_shape %}
-        <a href="{{ url_for('public.shop') }}" class="btn-primary" style="display:block; text-align:center; padding:0.8rem; background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.2); margin-top:1rem; font-size:0.85rem;">Clear All Filters</a>
-        {% endif %}
+        <!-- ── Actions ────────────────────────────────────── -->
+        <div class="sidebar-actions">
+          <button type="button" class="btn-apply" onclick="applyFilters()">Apply Filters</button>
+          {% if search or current_categories or current_brands or current_shape %}
+          <a href="{{ url_for('public.shop') }}" class="btn-clear">✕ Clear</a>
+          {% endif %}
+        </div>
+
       </form>
     </div>
-    </div><!-- end shop-sidebar-content -->
+    </div>
   </aside>
 
-  <!-- PRODUCT GRID -->
+  <!-- ══ MAIN CONTENT ══ -->
   <main>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
-      <h1 style="font-size:2.2rem; font-family:var(--font-heading);">
-        {% if current_category %}
-          {% for c in categories %}{% if c.slug == current_category %}{{ c.name }}{% endif %}{% endfor %}
+    <!-- Page heading -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:0.75rem;">
+      <h1 style="font-size:2.2rem; font-family:var(--font-heading); margin:0;">
+        {% if current_categories|length == 1 %}
+          {% for c in categories %}{% if c.slug == current_categories[0] %}{{ c.name }}{% endif %}{% endfor %}
+        {% elif current_categories|length > 1 %}
+          Selected Categories
         {% elif current_shape %}
           {{ current_shape }} Frames
         {% else %}
           Our Collection
         {% endif %}
       </h1>
-      <p style="color:var(--text-muted); font-size:1rem;">
+      <p style="color:var(--text-muted); font-size:0.95rem; margin:0;">
         Showing <strong>{{ products|length }}</strong> of <strong>{{ total_count }}</strong> items
       </p>
     </div>
 
-    {% if current_shape %}
+    <!-- Active filter chips -->
+    {% set has_filters = search or current_categories or current_brands or current_shape %}
+    {% if has_filters %}
     <div class="filter-chips">
-      <div class="filter-chip">
+      {% if search %}
+      <span class="filter-chip">
+        "{{ search }}"
+        <button onclick="removeFilter('search', '')" title="Remove">×</button>
+      </span>
+      {% endif %}
+      {% for slug in current_categories %}
+        {% set cat_label = slug %}
+        {% for c in categories %}{% if c.slug == slug %}{% set cat_label = c.name %}{% endif %}{% endfor %}
+      <span class="filter-chip">
+        {{ cat_label }}
+        <button onclick="removeFilter('category', '{{ slug }}')" title="Remove">×</button>
+      </span>
+      {% endfor %}
+      {% for slug in current_brands %}
+        {% set br_label = slug %}
+        {% for b in brands %}{% if b.slug == slug %}{% set br_label = b.name %}{% endif %}{% endfor %}
+      <span class="filter-chip">
+        {{ br_label }}
+        <button onclick="removeFilter('brand', '{{ slug }}')" title="Remove">×</button>
+      </span>
+      {% endfor %}
+      {% if current_shape %}
+      <span class="filter-chip">
         Shape: {{ current_shape }}
-        <a href="{{ url_for('public.shop', search=search, category=current_category, brand=current_brand, sort=current_sort) }}">×</a>
-      </div>
+        <button onclick="removeFilter('shape', '')" title="Remove">×</button>
+      </span>
+      {% endif %}
     </div>
     {% endif %}
 
+    <!-- Product grid -->
     {% if products %}
-      <div class="product-grid">
-        {% for p in products %}
-        <a href="{{ url_for('public.product_detail', product_id=p.id) }}" class="glass product-card" style="min-width:unset;">
-          <div class="card-img-wrap">
-            <img src="{{ resolve_image(p.image_url) }}" alt="{{ p.name }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}';" />
-            {% if p.stock_status == 'out_of_stock' %}
-            <span style="position:absolute; top:1rem; left:1rem; background:#ef4444; color:white; font-size:0.7rem; font-weight:800; padding:0.3rem 0.6rem; border-radius:6px; letter-spacing:0.5px;">OUT OF STOCK</span>
-            {% endif %}
-            {% if p.sale_price and p.sale_price < p.price %}
-            <span style="position:absolute; top:1rem; right:1rem; background:#22c55e; color:white; font-size:0.7rem; font-weight:800; padding:0.3rem 0.6rem; border-radius:6px; letter-spacing:0.5px;">SALE</span>
-            {% endif %}
-          </div>
-          <p style="color:var(--primary); font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.4rem;">{{ p.brand_name or p.category_name or 'Glasses' }}</p>
-          <h4 style="font-size:1.1rem; font-weight:700; margin-bottom:0.8rem; line-height:1.2; color:var(--text-main); display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ p.name }}</h4>
-          
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.05);">
-            <div style="display:flex; flex-direction:column;">
-              <span style="font-weight:800; font-size:1.2rem; color:var(--text-main);">₹{{ "%.0f"|format(p.sale_price or p.price) }}</span>
-              {% if p.sale_price and p.sale_price < p.price %}
-              <span style="text-decoration:line-through; color:var(--text-muted); font-size:0.8rem;">₹{{ "%.0f"|format(p.price) }}</span>
-              {% endif %}
-            </div>
-            <div class="glass" style="padding:0.5rem 0.8rem; border-radius:0.75rem; background:rgba(96,165,250,0.1); color:var(--primary); font-size:0.8rem; font-weight:700;">
-              View Details
-            </div>
-          </div>
-        </a>
-        {% endfor %}
-      </div>
-
-      <!-- PAGINATION -->
-      {% if total_pages > 1 %}
-      <div class="pagination">
-        {% if current_page > 1 %}
-        <a href="{{ url_for('public.shop', page=current_page-1, search=search, category=current_category, brand=current_brand, sort=current_sort, shape=current_shape) }}" class="page-btn">←</a>
-        {% endif %}
-        
-        {% for p_num in range(1, total_pages+1) %}
-          {% if p_num == 1 or p_num == total_pages or (p_num >= current_page - 2 and p_num <= current_page + 2) %}
-            <a href="{{ url_for('public.shop', page=p_num, search=search, category=current_category, brand=current_brand, sort=current_sort, shape=current_shape) }}" class="page-btn {% if p_num == current_page %}active{% endif %}">{{ p_num }}</a>
-          {% elif p_num == current_page - 3 or p_num == current_page + 3 %}
-            <span style="color:var(--text-muted);">...</span>
+    <div class="product-grid">
+      {% for p in products %}
+      <a href="{{ url_for('public.product_detail', product_id=p.id) }}" class="glass product-card" style="min-width:unset;">
+        <div class="card-img-wrap">
+          <img src="{{ resolve_image(p.image_url) }}" alt="{{ p.name }}" loading="lazy"
+               onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}';" />
+          {% if p.stock_status == 'out_of_stock' %}
+          <span style="position:absolute; top:1rem; left:1rem; background:#ef4444; color:white; font-size:0.7rem; font-weight:800; padding:0.3rem 0.6rem; border-radius:6px; letter-spacing:0.5px;">OUT OF STOCK</span>
           {% endif %}
-        {% endfor %}
-        
-        {% if current_page < total_pages %}
-        <a href="{{ url_for('public.shop', page=current_page+1, search=search, category=current_category, brand=current_brand, sort=current_sort, shape=current_shape) }}" class="page-btn">→</a>
-        {% endif %}
-      </div>
+          {% if p.sale_price and p.sale_price < p.price %}
+          <span style="position:absolute; top:1rem; right:1rem; background:#22c55e; color:white; font-size:0.7rem; font-weight:800; padding:0.3rem 0.6rem; border-radius:6px; letter-spacing:0.5px;">SALE</span>
+          {% endif %}
+        </div>
+        <p style="color:var(--primary); font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.4rem;">{{ p.brand_name or p.category_name or 'Glasses' }}</p>
+        <h4 style="font-size:1.1rem; font-weight:700; margin-bottom:0.8rem; line-height:1.2; color:var(--text-main); display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ p.name }}</h4>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.05);">
+          <div style="display:flex; flex-direction:column;">
+            <span style="font-weight:800; font-size:1.2rem; color:var(--text-main);">₹{{ "%.0f"|format(p.sale_price or p.price) }}</span>
+            {% if p.sale_price and p.sale_price < p.price %}
+            <span style="text-decoration:line-through; color:var(--text-muted); font-size:0.8rem;">₹{{ "%.0f"|format(p.price) }}</span>
+            {% endif %}
+          </div>
+          <div class="glass" style="padding:0.5rem 0.8rem; border-radius:0.75rem; background:rgba(96,165,250,0.1); color:var(--primary); font-size:0.8rem; font-weight:700;">
+            View Details
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="pagination">
+      {% if current_page > 1 %}
+      <button type="button" class="page-btn" onclick="gotoPage({{ current_page - 1 }})">←</button>
       {% endif %}
 
+      {% for p_num in range(1, total_pages + 1) %}
+        {% if p_num == 1 or p_num == total_pages or (p_num >= current_page - 2 and p_num <= current_page + 2) %}
+        <button type="button" class="page-btn {% if p_num == current_page %}active{% endif %}"
+                onclick="gotoPage({{ p_num }})">{{ p_num }}</button>
+        {% elif p_num == current_page - 3 or p_num == current_page + 3 %}
+        <span style="color:var(--text-muted);">…</span>
+        {% endif %}
+      {% endfor %}
+
+      {% if current_page < total_pages %}
+      <button type="button" class="page-btn" onclick="gotoPage({{ current_page + 1 }})">→</button>
+      {% endif %}
+    </div>
+    {% endif %}
+
     {% else %}
-      <div class="no-results-card">
-        <div class="no-results-icon">🔍</div>
-        <h2 style="font-family:var(--font-heading); margin-bottom:1rem;">No products found</h2>
-        <p style="color:var(--text-muted); margin-bottom:2rem;">We couldn't find any items matching your current filters.</p>
-        <a href="{{ url_for('public.shop') }}" class="btn-primary" style="padding:1rem 2.5rem; display:inline-block;">Reset All Filters</a>
-      </div>
+    <div class="no-results-card">
+      <div class="no-results-icon">🔍</div>
+      <h2 style="font-family:var(--font-heading); margin-bottom:1rem;">No products found</h2>
+      <p style="color:var(--text-muted); margin-bottom:2rem;">We couldn't find any items matching your current filters.</p>
+      <a href="{{ url_for('public.shop') }}" class="btn-primary" style="padding:1rem 2.5rem; display:inline-block;">Reset All Filters</a>
+    </div>
     {% endif %}
   </main>
 </div>
 
 <style>
-  @media (max-width: 768px) {
-    aside { position: static !important; }
-  }
+  @media (max-width: 768px) { aside { position: static !important; } }
 </style>
+
 <script>
-  function toggleShopFilter() {
-    const content = document.getElementById('shopSidebarContent');
-    const arrow   = document.getElementById('shopFilterArrow');
-    const isOpen  = content.classList.toggle('open');
-    arrow.textContent = isOpen ? '▲' : '▼';
+// ── Sidebar toggle (mobile) ────────────────────────────────────
+function toggleShopFilter() {
+  const content = document.getElementById('shopSidebarContent');
+  const arrow   = document.getElementById('shopFilterArrow');
+  const isOpen  = content.classList.toggle('open');
+  arrow.textContent = isOpen ? '▲' : '▼';
+}
+
+// ── Category accordion ─────────────────────────────────────────
+function toggleCatGroup(btn) {
+  const children = btn.closest('.cat-group').querySelector('.cat-children');
+  if (!children) return;
+  const isOpen = children.classList.toggle('open');
+  btn.classList.toggle('open', isOpen);
+}
+
+// ── Apply filters (submit form, reset to page 1) ───────────────
+function applyFilters() {
+  document.getElementById('pageInput').value  = 1;
+  document.getElementById('searchInput') && (
+    document.getElementById('searchInput').name = 'search'
+  );
+  document.getElementById('filterForm').submit();
+}
+
+// ── Go to a specific page preserving all filters ───────────────
+function gotoPage(n) {
+  document.getElementById('pageInput').value = n;
+  document.getElementById('filterForm').submit();
+}
+
+// ── Top-nav category toggle ────────────────────────────────────
+function topNavToggle(slug) {
+  const cb = document.querySelector(`input[name="category"][value="${slug}"]`);
+  if (cb) {
+    cb.checked = !cb.checked;
+    // Expand that group's children if now checked
+    const group = cb.closest('.cat-group');
+    if (group) {
+      const children = group.querySelector('.cat-children');
+      const chevron  = group.querySelector('.cat-chevron');
+      if (children && cb.checked) { children.classList.add('open'); }
+      if (chevron  && cb.checked) { chevron.classList.add('open');  }
+    }
+    applyFilters();
   }
+}
+
+// ── Remove a single filter chip ────────────────────────────────
+function removeFilter(name, value) {
+  const form = document.getElementById('filterForm');
+  if (name === 'search') {
+    document.getElementById('searchInput').value = '';
+  } else if (name === 'shape') {
+    document.getElementById('shapeInput').value = '';
+  } else {
+    // uncheck the matching checkbox
+    const cb = form.querySelector(`input[name="${name}"][value="${value}"]`);
+    if (cb) cb.checked = false;
+  }
+  applyFilters();
+}
 </script>
 {% endblock %}

@@ -16,11 +16,24 @@
                     <h1 style="font-size: 2.5rem; font-weight: 800; color: var(--text-main); line-height: 1; margin-bottom: 1rem;">Order #{{ order.order_number }}</h1>
                     <p style="color: var(--text-muted);">Placed on {{ order.created_at.strftime('%B %d, %Y at %H:%M') if order.created_at else '' }}</p>
                 </div>
-                <div class="glass" style="padding: 0.75rem 1.5rem; border-radius: 999px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); border: 1px solid var(--border-glass);">
+                                <div class="glass" style="padding: 0.75rem 1.5rem; border-radius: 999px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: {% if order.status == 'cancelled' %}#ef4444{% elif order.status == 'delivered' %}#22c55e{% else %}var(--primary){% endif %}; border: 1px solid var(--border-glass);">
                     {{ order.status }}
                 </div>
             </div>
         </div>
+
+                {% if order.status == 'cancelled' %}
+                <div class="glass" style="border-radius:1rem; padding:1rem 1.25rem; margin-bottom:1.5rem; border-left:4px solid #ef4444; color:#fecaca;">
+                    This order has been cancelled{% if order.cancelled_at %} on {{ order.cancelled_at.strftime('%d %b %Y, %I:%M %p') }}{% endif %}.
+                    {% if order.cancel_reason %}
+                    <div style="margin-top:0.5rem; color:#fca5a5;">Reason: {{ order.cancel_reason }}</div>
+                    {% endif %}
+                </div>
+                {% elif order.status not in ['shipped', 'delivered'] %}
+                <div style="display:flex; justify-content:flex-end; margin-bottom:1.5rem;">
+                    <button type="button" class="btn-primary" style="background:#ef4444; padding:0.85rem 1.5rem; border-radius:0.75rem; font-weight:700; border:none;" onclick="openCancelModal('{{ order.id }}')">Cancel Order</button>
+                </div>
+                {% endif %}
 
         <div style="display: grid; grid-template-columns: 1fr 320px; gap: 2.5rem; align-items: start;">
             
@@ -61,7 +74,7 @@
                     </div>
                     {% endif %}
                     <div style="display: flex; justify-content: space-between; margin-top: 1rem; font-size: 1.5rem; font-weight: 800; color: var(--text-main);">
-                        <span>Total Paid</span>
+                        <span>{{ 'Amount Due at Delivery' if order.payment_method == 'cod' else 'Total Paid' }}</span>
                         <span>₹{{ "%.0f"|format(order.total_amount) }}</span>
                     </div>
                 </div>
@@ -73,6 +86,9 @@
                     <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 1.25rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">Payment Info</h4>
                     <p style="font-weight: 600; color: var(--text-main); margin-bottom: 0.5rem; text-transform: uppercase;">{{ order.payment_method }}</p>
                     <p style="color: var(--text-muted); font-size: 0.9rem;">Status: <span style="color: var(--primary); font-weight: 700;">{{ order.payment_status }}</span></p>
+                    {% if order.payment_method == 'cod' %}
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 0.5rem;">Pay this amount at delivery: ₹{{ "%.0f"|format(order.total_amount) }}</p>
+                    {% endif %}
                 </div>
 
                 <div class="glass" style="border-radius: 1.5rem; padding: 2rem;">
@@ -89,6 +105,42 @@
     </div>
 </div>
 
+<div id="cancelModal" style="display:none; position:fixed; inset:0; z-index:3000; background:rgba(2,6,23,0.72); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:1.5rem;">
+    <div class="glass" style="width:min(100%, 520px); border-radius:1.25rem; padding:1.5rem;">
+        <div id="cancelStep1">
+            <h3 style="font-size:1.25rem; font-weight:800; margin-bottom:0.75rem;">Do you really want to cancel this order?</h3>
+            <p style="color:var(--text-muted); margin-bottom:1.25rem;">This will cancel the order only if it has not been shipped yet.</p>
+            <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+                <button type="button" class="btn-primary" style="background:rgba(255,255,255,0.08);" onclick="closeCancelModal()">No, keep it</button>
+                <button type="button" class="btn-primary" style="background:#ef4444;" onclick="showCancelStep2()">Yes, continue</button>
+            </div>
+        </div>
+        <div id="cancelStep2" style="display:none;">
+            <h3 style="font-size:1.25rem; font-weight:800; margin-bottom:0.75rem;">Reason for cancellation</h3>
+            <p style="color:var(--text-muted); margin-bottom:1rem;">Please choose the reason for cancelling.</p>
+            <form id="cancelForm" method="POST" action="{{ url_for('checkout.order_cancel', order_id=order.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <input type="hidden" name="cancel_reason" id="cancelReasonInput" value="" />
+                    <div id="cancelOtherWrap" style="display:none; margin-bottom:1rem;">
+                        <label style="display:block; font-size:0.82rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">Please specify</label>
+                        <textarea id="cancelReasonOther" name="cancel_reason_other" rows="3" class="field-input" style="width:100%; resize:vertical;" placeholder="Tell us why you want to cancel..."></textarea>
+                    </div>
+                <div style="display:grid; gap:0.75rem; margin-bottom:1.25rem;">
+                                        <button type="button" class="cancel-reason-option glass" style="text-align:left; padding:0.9rem 1rem; border-radius:0.75rem; color:var(--text-main);" onclick="selectCancelReason(this, 'Ordered by mistake')">Ordered by mistake</button>
+                                        <button type="button" class="cancel-reason-option glass" style="text-align:left; padding:0.9rem 1rem; border-radius:0.75rem; color:var(--text-main);" onclick="selectCancelReason(this, 'Found a better price elsewhere')">Found a better price elsewhere</button>
+                                        <button type="button" class="cancel-reason-option glass" style="text-align:left; padding:0.9rem 1rem; border-radius:0.75rem; color:var(--text-main);" onclick="selectCancelReason(this, 'Delivery taking too long')">Delivery taking too long</button>
+                                        <button type="button" class="cancel-reason-option glass" style="text-align:left; padding:0.9rem 1rem; border-radius:0.75rem; color:var(--text-main);" onclick="selectCancelReason(this, 'Need to change the order')">Need to change the order</button>
+                                        <button type="button" class="cancel-reason-option glass" style="text-align:left; padding:0.9rem 1rem; border-radius:0.75rem; color:var(--text-main);" onclick="selectCancelReason(this, 'Other')">Other</button>
+                </div>
+                <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+                    <button type="button" class="btn-primary" style="background:rgba(255,255,255,0.08);" onclick="backToCancelStep1()">Back</button>
+                    <button type="submit" id="confirmCancelBtn" class="btn-primary" style="background:#ef4444;" disabled>Cancel Order</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <style>
 @media (max-width: 850px) {
     div[style*="grid-template-columns: 1fr 320px"] {
@@ -96,4 +148,49 @@
     }
 }
 </style>
+
+<script>
+    function openCancelModal(orderId) {
+        document.getElementById('cancelModal').style.display = 'flex';
+        document.getElementById('cancelStep1').style.display = 'block';
+        document.getElementById('cancelStep2').style.display = 'none';
+        document.getElementById('cancelReasonInput').value = '';
+        document.getElementById('confirmCancelBtn').disabled = true;
+    }
+    function closeCancelModal() {
+        document.getElementById('cancelModal').style.display = 'none';
+    }
+    function showCancelStep2() {
+        document.getElementById('cancelStep1').style.display = 'none';
+        document.getElementById('cancelStep2').style.display = 'block';
+    }
+    function backToCancelStep1() {
+        document.getElementById('cancelStep2').style.display = 'none';
+        document.getElementById('cancelStep1').style.display = 'block';
+    }
+    function selectCancelReason(button, reason) {
+        document.getElementById('cancelReasonInput').value = reason;
+        document.getElementById('confirmCancelBtn').disabled = false;
+        document.querySelectorAll('.cancel-reason-option').forEach(el => {
+            el.style.outline = 'none';
+            el.style.borderColor = 'var(--border-glass)';
+        });
+        button.style.outline = '2px solid var(--primary)';
+        button.style.borderColor = 'var(--primary)';
+        const otherWrap = document.getElementById('cancelOtherWrap');
+        const otherField = document.getElementById('cancelReasonOther');
+        if (reason === 'Other') {
+            otherWrap.style.display = 'block';
+            otherField.required = true;
+            otherField.focus();
+        } else {
+            otherWrap.style.display = 'none';
+            otherField.required = false;
+            otherField.value = '';
+        }
+    }
+    document.getElementById('cancelModal')?.addEventListener('click', function(event) {
+        if (event.target === this) closeCancelModal();
+    });
+</script>
 {% endblock %}

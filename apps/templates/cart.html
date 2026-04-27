@@ -12,6 +12,7 @@
     <!-- CART ITEMS -->
     <div style="display:flex; flex-direction:column; gap:1rem;">
       <form action="{{ url_for('cart.cart_update') }}" method="post" id="updateForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
         {% for pid, item in cart_items.items() %}
         <div class="glass cart-item-row">
           <!-- Image -->
@@ -47,6 +48,7 @@
 
       <!-- Hidden Removal Form (Outside main form to prevent nesting issues) -->
       <form id="removeForm" action="{{ url_for('cart.cart_remove') }}" method="post" style="display:none;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
           <input type="hidden" name="product_id" id="removePid" value="" />
       </form>
     </div>

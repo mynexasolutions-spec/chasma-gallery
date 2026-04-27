@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 import db
+from helpers import refresh_cart_prices
 from queries import PRODUCTS_SELECT
 
 bp = Blueprint("cart", __name__)
@@ -8,10 +9,8 @@ bp = Blueprint("cart", __name__)
 @bp.route("/cart")
 def view_cart():
     cart_items = session.get("cart", {})
-    subtotal   = sum(
-        float(item.get("price", 0)) * int(item.get("qty", 0))
-        for item in cart_items.values()
-    )
+    cart_items, subtotal = refresh_cart_prices(cart_items)
+    session["cart"] = cart_items
     shipping = 0 if subtotal >= 999 else 99
     return render_template(
         "cart.html",
@@ -47,7 +46,7 @@ def cart_add():
         if variation_id:
             var = db.query_one("SELECT * FROM product_variations WHERE id = %s", [variation_id])
             if var:
-                price = float(var.get("sale_price") or var["price"] or price)
+                price = float(product.get("sale_price") or product.get("price") or price)
                 sku   = var.get("sku", sku)
                 opts  = db.query("""
                     SELECT av.value FROM attribute_values av

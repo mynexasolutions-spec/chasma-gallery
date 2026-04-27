@@ -9,7 +9,7 @@
     <span>{{ attribute.name }}</span>
   </div>
   <h1 style="font-size:1.5rem; font-weight:700; color:var(--admin-text-main);">Manage Values: {{ attribute.name }}</h1>
-  <p style="color:var(--admin-text-muted); font-size:0.875rem;">Add or remove possible values for this attribute and manage global stock.</p>
+  <p style="color:var(--admin-text-muted); font-size:0.875rem;">Add, rename, or remove possible values for this attribute.</p>
 </div>
 
 <div class="admin-grid-order" style="display:grid; grid-template-columns: 1fr 1.5fr; gap:2rem; align-items:start;">
@@ -22,10 +22,6 @@
       <div style="margin-bottom:1.25rem;">
         <label class="admin-label">Value Content *</label>
         <input type="text" name="value" required placeholder="e.g. -0.50 or Red" class="admin-input" />
-      </div>
-      <div style="margin-bottom:1.25rem;">
-        <label class="admin-label">Initial Stock</label>
-        <input type="number" name="stock_quantity" value="0" class="admin-input" />
       </div>
       <div style="margin-bottom:1.5rem;">
         <label class="admin-label">Image/Icon (Optional)</label>
@@ -51,23 +47,21 @@
           <thead>
             <tr>
               <th style="padding-left:1.5rem;">Value</th>
-              <th style="width:150px;">Stock</th>
               <th style="text-align:right; padding-right:1.5rem;">Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for v in values %}
             <tr>
-              <td style="padding-left:1.5rem; font-weight:600;">{{ v.value }}</td>
-              <td>
-                <input type="number" name="stock_{{ v.id }}" value="{{ v.stock_quantity }}" class="admin-input" style="height:36px; padding:0.4rem; font-size:0.875rem;" />
+              <td style="padding-left:1.5rem;">
+                <input type="text" name="value_{{ v.id }}" value="{{ v.value }}" class="admin-input" style="height:36px; padding:0.4rem; font-size:0.875rem; font-weight:600;" />
               </td>
               <td style="text-align:right; padding-right:1.5rem;">
                 <button type="button" onclick="if(confirm('Remove this value?')) { document.getElementById('delete_form_{{ v.id }}').submit(); }" class="admin-btn" style="padding:0.375rem 0.75rem; font-size:0.8125rem; color:#ef4444; background:rgba(239,68,68,0.05); border:none;">Remove</button>
               </td>
             </tr>
             {% else %}
-            <tr><td colspan="3" style="text-align:center; padding:3rem; color:var(--admin-text-muted);">No values added yet.</td></tr>
+            <tr><td colspan="2" style="text-align:center; padding:3rem; color:var(--admin-text-muted);">No values added yet.</td></tr>
             {% endfor %}
           </tbody>
         </table>

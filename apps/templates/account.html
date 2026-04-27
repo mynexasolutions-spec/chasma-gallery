@@ -31,6 +31,16 @@
     border-radius: 0.75rem; color: var(--text-main); font-size: 1rem; outline: none; transition: 0.3s;
   }
   .field-input:focus { border-color: var(--primary); background: rgba(255,255,255,0.05); }
+  .status-badge {
+    display:inline-flex; align-items:center; padding:0.3rem 0.75rem; border-radius:999px;
+    font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em;
+  }
+  .status-pending { background:rgba(251,191,36,0.15); color:#fbbf24; }
+  .status-processing { background:rgba(96,165,250,0.15); color:#60a5fa; }
+  .status-shipped { background:rgba(167,139,250,0.15); color:#a78bfa; }
+  .status-delivered { background:rgba(34,197,94,0.15); color:#22c55e; }
+  .status-cancelled { background:rgba(239,68,68,0.15); color:#ef4444; }
+  .status-refunded { background:rgba(148,163,184,0.15); color:#cbd5e1; }
 
   @media(max-width: 991px) {
     .account-layout { grid-template-columns: 1fr; }
@@ -244,7 +254,12 @@
           <span class="status-badge status-{{ order.status }}">{{ order.status }}</span>
         </div>
         <div style="font-weight:700;">₹{{ "%.0f"|format(order.total_amount) }}</div>
-        <div style="color:var(--text-muted); text-transform:uppercase; font-size:0.8rem;">{{ order.payment_method or 'COD' }}</div>
+        <div style="display:flex; flex-direction:column; gap:0.35rem; align-items:flex-start;">
+          <div style="color:var(--text-muted); text-transform:uppercase; font-size:0.8rem;">{{ 'Pay on Delivery' if order.payment_method == 'cod' else (order.payment_method or 'COD') }}</div>
+          {% if order.status not in ['shipped', 'delivered', 'cancelled', 'refunded'] %}
+          <button type="button" style="background:none; color:#f87171; padding:0; font-size:0.8rem; font-weight:700; border:none; text-align:left;" onclick="openCancelModal('{{ order.id }}')">Cancel</button>
+          {% endif %}
+        </div>
       </div>
       {% endfor %}
     </div>
@@ -260,6 +275,91 @@
     </div>
   </div>
 </div>
+
+  <div id="cancelModal" style="display:none; position:fixed; inset:0; z-index:3000; background:rgba(2,6,23,0.72); backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:1.5rem;">
+    <div class="glass" style="width:min(100%, 520px); border-radius:1.25rem; padding:1.5rem;">
+      <div id="cancelStep1">
+        <h3 style="font-size:1.25rem; font-weight:800; margin-bottom:0.75rem;">Do you really want to cancel this order?</h3>
+        <p style="color:var(--text-muted); margin-bottom:1.25rem;">This will cancel the order only if it has not been shipped yet.</p>
+        <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+          <button type="button" class="btn-primary" style="background:rgba(255,255,255,0.08);" onclick="closeCancelModal()">No, keep it</button>
+          <button type="button" class="btn-primary" style="background:#ef4444;" onclick="showCancelStep2()">Yes, continue</button>
+        </div>
+      </div>
+      <div id="cancelStep2" style="display:none;">
+        <h3 style="font-size:1.25rem; font-weight:800; margin-bottom:0.75rem;">Reason for cancellation</h3>
+        <p style="color:var(--text-muted); margin-bottom:1rem;">Please choose the reason for cancelling.</p>
+        <form id="cancelForm" method="POST" action="{{ url_for('checkout.order_cancel', order_id='__ORDER_ID__') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="cancel_reason" id="cancelReasonInput" value="" />
+          <div id="cancelOtherWrap" style="display:none; margin-bottom:1rem;">
+            <label style="display:block; font-size:0.82rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.5rem;">Please specify</label>
+            <textarea id="cancelReasonOther" name="cancel_reason_other" rows="3" class="field-input" style="width:100%; resize:vertical;" placeholder="Tell us why you want to cancel..."></textarea>
+          </div>
+          <div style="display:grid; gap:0.75rem; margin-bottom:1.25rem;">
+              <button type="button" class="cancel-reason-option glass" style="text-align:left; padding:0.9rem 1rem; border-radius:0.75rem; color:var(--text-main);" onclick="selectCancelReason(this, 'Ordered by mistake')">Ordered by mistake</button>
+              <button type="button" class="cancel-reason-option glass" style="text-align:left; padding:0.9rem 1rem; border-radius:0.75rem; color:var(--text-main);" onclick="selectCancelReason(this, 'Found a better price elsewhere')">Found a better price elsewhere</button>
+              <button type="button" class="cancel-reason-option glass" style="text-align:left; padding:0.9rem 1rem; border-radius:0.75rem; color:var(--text-main);" onclick="selectCancelReason(this, 'Delivery taking too long')">Delivery taking too long</button>
+              <button type="button" class="cancel-reason-option glass" style="text-align:left; padding:0.9rem 1rem; border-radius:0.75rem; color:var(--text-main);" onclick="selectCancelReason(this, 'Need to change the order')">Need to change the order</button>
+              <button type="button" class="cancel-reason-option glass" style="text-align:left; padding:0.9rem 1rem; border-radius:0.75rem; color:var(--text-main);" onclick="selectCancelReason(this, 'Other')">Other</button>
+          </div>
+          <div style="display:flex; gap:0.75rem; justify-content:flex-end;">
+            <button type="button" class="btn-primary" style="background:rgba(255,255,255,0.08);" onclick="backToCancelStep1()">Back</button>
+            <button type="submit" id="confirmCancelBtn" class="btn-primary" style="background:#ef4444;" disabled>Cancel Order</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let cancelTargetOrderId = null;
+    function openCancelModal(orderId) {
+      cancelTargetOrderId = orderId;
+      const form = document.getElementById('cancelForm');
+      form.action = `{{ url_for('checkout.order_cancel', order_id='__ORDER_ID__') }}`.replace('__ORDER_ID__', orderId);
+      document.getElementById('cancelModal').style.display = 'flex';
+      document.getElementById('cancelStep1').style.display = 'block';
+      document.getElementById('cancelStep2').style.display = 'none';
+      document.getElementById('cancelReasonInput').value = '';
+      document.getElementById('confirmCancelBtn').disabled = true;
+    }
+    function closeCancelModal() {
+      document.getElementById('cancelModal').style.display = 'none';
+    }
+    function showCancelStep2() {
+      document.getElementById('cancelStep1').style.display = 'none';
+      document.getElementById('cancelStep2').style.display = 'block';
+    }
+    function backToCancelStep1() {
+      document.getElementById('cancelStep2').style.display = 'none';
+      document.getElementById('cancelStep1').style.display = 'block';
+    }
+    function selectCancelReason(button, reason) {
+      document.getElementById('cancelReasonInput').value = reason;
+      document.getElementById('confirmCancelBtn').disabled = false;
+      document.querySelectorAll('.cancel-reason-option').forEach(el => {
+        el.style.outline = 'none';
+        el.style.borderColor = 'var(--border-glass)';
+      });
+      button.style.outline = '2px solid var(--primary)';
+      button.style.borderColor = 'var(--primary)';
+      const otherWrap = document.getElementById('cancelOtherWrap');
+      const otherField = document.getElementById('cancelReasonOther');
+      if (reason === 'Other') {
+        otherWrap.style.display = 'block';
+        otherField.required = true;
+        otherField.focus();
+      } else {
+        otherWrap.style.display = 'none';
+        otherField.required = false;
+        otherField.value = '';
+      }
+    }
+    document.getElementById('cancelModal')?.addEventListener('click', function(event) {
+      if (event.target === this) closeCancelModal();
+    });
+  </script>
 {% endblock %}
 
 {% block extra_js %}

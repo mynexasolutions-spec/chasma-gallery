@@ -52,7 +52,7 @@
       <div style="display:flex; gap:0.75rem; overflow-x:auto; padding-bottom:0.5rem;">
         {% for img in images %}
         <div class="glass thumb-img" onclick="document.getElementById('mainImg').src='{{ resolve_image(img.image_url) }}'" style="width:80px; height:80px; border-radius:0.75rem; overflow:hidden; cursor:pointer; background:white; padding:0.3rem; flex-shrink:0; border:2px solid {% if loop.first %}var(--primary){% else %}transparent{% endif %};">
-          <img src="{{ resolve_image(img.image_url) }}" alt="{{ img.alt_text or product.name }}" style="width:100%; height:100%; object-fit:contain;" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}'" />
+          <img src="{{ resolve_image(img.image_url) }}" alt="{{ img.alt_text or product.name }}" loading="lazy" style="width:100%; height:100%; object-fit:contain;" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}'" />
         </div>
         {% endfor %}
       </div>
@@ -115,6 +115,7 @@
       <!-- Qty + Add to Cart -->
       {% if product.stock_status != 'out_of_stock' %}
       <form action="{{ url_for('cart.cart_add') }}" method="post" id="addToCartForm" style="display:flex; gap:1.25rem; align-items:center; flex-wrap:wrap; margin-top:1rem;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
         <input type="hidden" name="product_id" id="cartProductId" value="{{ product.id }}" />
         <input type="hidden" name="variation_id" id="cartVariationId" value="" />
         
@@ -262,11 +263,12 @@
     const btn = document.getElementById('addToCartBtn');
     const priceDisplay = document.getElementById('displayPrice');
     const skuDisplay = document.getElementById('displaySku');
+    const basePrice = '₹{{ "%.0f"|format(product.sale_price or product.price) }}';
     
     if (selectedIds.length < selects.length) {
       btn.disabled = true;
       btn.innerText = 'Select Options';
-      priceDisplay.innerText = '₹{{ "%.0f"|format(product.sale_price or product.price) }}';
+      priceDisplay.innerText = basePrice;
       return;
     }
 
@@ -277,13 +279,13 @@
 
     if (match) {
       document.getElementById('cartVariationId').value = match.id;
-      priceDisplay.innerText = '₹' + Math.round(match.price);
+      priceDisplay.innerText = basePrice;
       skuDisplay.innerText = 'SKU: ' + match.sku;
       btn.disabled = false;
       btn.innerText = 'Add to Cart 🛒';
       
       const stockDisplay = document.getElementById('displayStock');
-      if (match.stock_quantity > 0) {
+      if ({{ product.stock_quantity or 0 }} > 0) {
         stockDisplay.innerHTML = '<span style="color:#4ade80; font-weight:600;">✓ In Stock</span>';
       } else {
         stockDisplay.innerHTML = '<span style="color:#f87171; font-weight:600;">✗ Out of Stock</span>';
@@ -293,7 +295,7 @@
     } else {
       btn.disabled = true;
       btn.innerText = 'Unavailable Combination';
-      priceDisplay.innerText = '—';
+      priceDisplay.innerText = basePrice;
     }
   }
 </script>
