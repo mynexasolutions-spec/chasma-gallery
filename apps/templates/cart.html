@@ -25,8 +25,8 @@
             {% if item.sku %}<p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:0.5rem;">SKU: {{ item.sku }}</p>{% endif %}
             <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
               <div style="display:flex; align-items:center; border:1px solid var(--border-glass); border-radius:0.5rem; overflow:hidden; background:rgba(0,0,0,0.2);">
-                <button type="button" onclick="changeQty('{{ pid }}', -1)" style="padding:0.4rem 0.8rem; background:rgba(255,255,255,0.05); border:none; color:white; cursor:pointer; font-weight:bold;">−</button>
-                <input type="number" name="qty_{{ pid }}" id="qty_{{ pid }}" value="{{ item.qty }}" min="0" 
+                  <button type="button" onclick="changeQty('{{ pid }}', -1)" style="padding:0.4rem 0.8rem; background:rgba(255,255,255,0.05); border:none; color:white; cursor:pointer; font-weight:bold;">−</button>
+                  <input type="number" name="qty_{{ pid }}" id="qty_{{ pid }}" value="{{ item.qty }}" min="1" 
                        style="width:50px; text-align:center; background:transparent; border:none; color:white; font-size:1rem; font-weight:600; outline:none; -moz-appearance: textfield; appearance: none;" />
                 <button type="button" onclick="changeQty('{{ pid }}', 1)" style="padding:0.4rem 0.8rem; background:rgba(255,255,255,0.05); border:none; color:white; cursor:pointer; font-weight:bold;">+</button>
               </div>
@@ -35,7 +35,7 @@
           </div>
           <!-- Price + Remove -->
           <div class="cart-price-col" style="display:flex; flex-direction:column; align-items:flex-end; gap:0.75rem; min-width:100px;">
-            <span style="font-weight:700; font-size:1.15rem; color:var(--primary);">₹{{ "%.0f"|format(item.price * item.qty) }}</span>
+            <span id="lineTotal_{{ pid }}" style="font-weight:700; font-size:1.15rem; color:var(--primary);">₹{{ "%.0f"|format(item.price * item.qty) }}</span>
             <button type="button" onclick="removeItem('{{ pid }}')" style="background:none; border:none; color:#f87171; cursor:pointer; font-size:0.85rem; font-weight:600; padding:0.25rem; transition:0.2s;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Remove</button>
           </div>
         </div>
@@ -59,20 +59,18 @@
       <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.5rem;">
         <div style="display:flex; justify-content:space-between; color:var(--text-muted);">
           <span>Subtotal</span>
-          <span style="color:var(--text-main);">₹{{ "%.0f"|format(subtotal) }}</span>
+          <span id="cartSubtotal" style="color:var(--text-main);">₹{{ "%.0f"|format(subtotal) }}</span>
         </div>
         <div style="display:flex; justify-content:space-between; color:var(--text-muted);">
           <span>Shipping</span>
-          <span style="color:{% if shipping == 0 %}#22c55e{% else %}var(--text-main){% endif %};">
+          <span id="cartShipping" style="color:{% if shipping == 0 %}#22c55e{% else %}var(--text-main){% endif %};">
             {% if shipping == 0 %}Free{% else %}₹{{ "%.0f"|format(shipping) }}{% endif %}
           </span>
         </div>
-        {% if shipping > 0 %}
-        <p style="font-size:0.8rem; color:var(--text-muted);">Add ₹{{ "%.0f"|format(999 - subtotal) }} more for free shipping</p>
-        {% endif %}
+        <p id="shippingNote" style="font-size:0.8rem; color:var(--text-muted); {% if shipping == 0 %}display:none;{% endif %}">Add ₹{{ "%.0f"|format(999 - subtotal) }} more for free shipping</p>
         <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:0.75rem; display:flex; justify-content:space-between; font-weight:700; font-size:1.1rem;">
           <span>Total</span>
-          <span style="color:var(--primary);">₹{{ "%.0f"|format(total) }}</span>
+          <span id="cartTotal" style="color:var(--primary);">₹{{ "%.0f"|format(total) }}</span>
         </div>
       </div>
       <a href="{{ url_for('checkout.checkout') }}" style="display:block; width:100%; padding:1rem; background:var(--primary); color:white; text-align:center; border-radius:0.75rem; font-weight:700; font-size:1rem; text-decoration:none;">Proceed to Checkout →</a>
@@ -94,12 +92,72 @@
 
 {% block extra_js %}
 <script>
+  let qtyUpdateTimer = null;
+
+  function formatMoney(value) {
+    return '₹' + Math.round(value).toLocaleString('en-IN');
+  }
+
   function changeQty(pid, delta) {
     const inp = document.getElementById('qty_' + pid);
-    inp.value = Math.max(0, parseInt(inp.value) + delta);
-    // Submit the updateForm automatically to reflect changes immediately if you prefer, 
-    // or just leave it for the user to click "Update Cart".
+    const current = parseInt(inp.value || '0', 10) || 0;
+    inp.value = Math.max(1, current + delta);
+    recalculateCartTotals();
+    scheduleCartUpdate();
   }
+
+  function recalculateCartTotals() {
+    let subtotal = 0;
+    document.querySelectorAll('[id^="qty_"]').forEach(input => {
+      const pid = input.id.replace('qty_', '');
+      const rowQty = Math.max(1, parseInt(input.value || '1', 10) || 1);
+      const priceLabel = input.closest('.cart-item-row').querySelector('span[style*="× ₹"]');
+      const unitPriceText = priceLabel ? priceLabel.textContent.replace('× ₹', '').replace(/,/g, '').trim() : '0';
+      const unitPrice = parseFloat(unitPriceText) || 0;
+      const lineTotal = unitPrice * rowQty;
+      subtotal += lineTotal;
+      const totalEl = document.getElementById('lineTotal_' + pid);
+      if (totalEl) totalEl.textContent = formatMoney(lineTotal);
+    });
+
+    const shipping = subtotal >= 999 ? 0 : 99;
+    const total = subtotal + shipping;
+    const subtotalEl = document.getElementById('cartSubtotal');
+    const shippingEl = document.getElementById('cartShipping');
+    const totalEl = document.getElementById('cartTotal');
+    const shippingNote = document.getElementById('shippingNote');
+
+    if (subtotalEl) subtotalEl.textContent = formatMoney(subtotal);
+    if (shippingEl) {
+      shippingEl.textContent = shipping === 0 ? 'Free' : formatMoney(shipping);
+      shippingEl.style.color = shipping === 0 ? '#22c55e' : 'var(--text-main)';
+    }
+    if (totalEl) totalEl.textContent = formatMoney(total);
+
+    if (shippingNote) {
+      if (shipping === 0) {
+        shippingNote.style.display = 'none';
+      } else {
+        shippingNote.style.display = '';
+        shippingNote.textContent = 'Add ' + formatMoney(999 - subtotal) + ' more for free shipping';
+      }
+    }
+  }
+
+  function scheduleCartUpdate() {
+    if (qtyUpdateTimer) clearTimeout(qtyUpdateTimer);
+    qtyUpdateTimer = setTimeout(() => {
+      document.getElementById('updateForm').submit();
+    }, 150);
+  }
+
+  document.querySelectorAll('[id^="qty_"]').forEach(input => {
+    input.addEventListener('change', () => {
+      input.value = Math.max(1, parseInt(input.value || '1', 10) || 1);
+      recalculateCartTotals();
+      scheduleCartUpdate();
+    });
+  });
 
   function removeItem(pid) {
     if (confirm('Are you sure you want to remove this item?')) {

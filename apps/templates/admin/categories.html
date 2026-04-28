@@ -45,7 +45,8 @@
         </td>
         <td style="text-align:right; display:flex; justify-content:flex-end; gap:0.5rem;">
           <a href="{{ url_for('admin_category_edit', cat_id=c.id) }}" class="admin-btn" style="padding:0.375rem 0.75rem; font-size:0.8125rem; background:rgba(96,165,250,0.1); color:var(--primary);">Edit</a>
-          <form action="{{ url_for('admin_category_delete', cat_id=c.id) }}" method="post" onsubmit="return confirm('Delete this category?')">
+          <form action="{{ url_for('admin_category_delete', cat_id=c.id) }}" method="post" 
+                onsubmit="return confirm('Are you sure you want to delete \'{{ c.name }}\'? {% if c.product_count > 0 %}{{ c.product_count }} products linked to this category will be uncategorized.{% endif %}')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <button type="submit" class="admin-btn" style="padding:0.375rem 0.75rem; font-size:0.8125rem; color:#ef4444; background:rgba(239,68,68,0.05); border:none;">Delete</button>
           </form>

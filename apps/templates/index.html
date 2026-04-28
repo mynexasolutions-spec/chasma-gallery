@@ -62,31 +62,16 @@
   </div>
 </section>
 
-<!-- FEATURES -->
-<section class="section-padding section-fade" style="background:var(--bg-glass); border-bottom:1px solid rgba(255,255,255,0.05);">
-  <div class="features-grid">
-    <div class="glass feature-card"><div style="font-size:2.5rem; margin-bottom:1rem;">🚚</div><h3 style="font-size:1.2rem; margin-bottom:0.5rem;">Free Shipping</h3><p style="color:var(--text-muted); font-size:0.95rem;">On all orders over ₹999</p></div>
-    <div class="glass feature-card"><div style="font-size:2.5rem; margin-bottom:1rem;">🔁</div><h3 style="font-size:1.2rem; margin-bottom:0.5rem;">14-Day Returns</h3><p style="color:var(--text-muted); font-size:0.95rem;">Hassle-free return policy</p></div>
-    <div class="glass feature-card"><div style="font-size:2.5rem; margin-bottom:1rem;">🛡️</div><h3 style="font-size:1.2rem; margin-bottom:0.5rem;">1 Year Warranty</h3><p style="color:var(--text-muted); font-size:0.95rem;">On all frames and lenses</p></div>
-    <div class="glass feature-card"><div style="font-size:2.5rem; margin-bottom:1rem;">⚕️</div><h3 style="font-size:1.2rem; margin-bottom:0.5rem;">Certified Opticians</h3><p style="color:var(--text-muted); font-size:0.95rem;">Expert advice available</p></div>
-  </div>
-</section>
-
-<!-- BRANDS -->
-<section class="section-padding section-fade" style="background:var(--accent-light); overflow:hidden;">
-  <h2 style="text-align:center; margin-bottom:3rem;">We sell trusted brands</h2>
-  <div class="brand-overflow">
-    <div class="brand-carousel">
-      <div class="glass brand-item">Ray-Ban</div>
-      <div class="glass brand-item">Oakley</div>
-      <div class="glass brand-item">Gucci</div>
-      <div class="glass brand-item">Prada</div>
-      <div class="glass brand-item">Vogue</div>
-      <div class="glass brand-item">Armani</div>
-      <div class="glass brand-item">IRUS</div>
-      <div class="glass brand-item">Scott</div>
-      <div class="glass brand-item">Sterling</div>
-    </div>
+<!-- SHOP BY CATEGORY -->
+<section class="section-padding section-fade" style="background:rgba(0,0,0,0.3);">
+  <h2 style="text-align:center; font-size:2.5rem; margin-bottom:3rem;">Shop by Category</h2>
+  <div class="product-category-grid">
+    {% for cat in featured_categories %}
+    <a href="{{ url_for('public.shop', category=cat.slug) }}" class="glass category-card">
+      <img src="{{ resolve_image(cat.img) }}" alt="{{ cat.label }}" loading="lazy" onerror="this.style.background='var(--accent-light)'" />
+      <div class="cat-gradient"><h3 style="font-size:1.4rem; margin:0;">{{ cat.label }}</h3></div>
+    </a>
+    {% endfor %}
   </div>
 </section>
 
@@ -100,19 +85,6 @@
         <img src="{{ resolve_image(s.img) }}" alt="{{ s.label }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}';" />
       </div>
       <h4 style="font-weight:700; font-size:1.15rem; color:var(--text-main);">{{ s.label }}</h4>
-    </a>
-    {% endfor %}
-  </div>
-</section>
-
-<!-- SHOP BY CATEGORY -->
-<section class="section-padding section-fade" style="background:rgba(0,0,0,0.3);">
-  <h2 style="text-align:center; font-size:2.5rem; margin-bottom:3rem;">Shop by Category</h2>
-  <div class="product-category-grid">
-    {% for cat in featured_categories %}
-    <a href="{{ url_for('public.shop', category=cat.slug) }}" class="glass category-card">
-      <img src="{{ resolve_image(cat.img) }}" alt="{{ cat.label }}" loading="lazy" onerror="this.style.background='var(--accent-light)'" />
-      <div class="cat-gradient"><h3 style="font-size:1.4rem; margin:0;">{{ cat.label }}</h3></div>
     </a>
     {% endfor %}
   </div>
@@ -135,18 +107,20 @@
   </div>
 </section>
 
-<!-- FREE LENS BANNER -->
-<section class="section-fade" style="padding:0 0 4rem 0;">
-  <div class="free-lens-banner">
-    <div style="position:absolute; top:-30%; left:50%; transform:translateX(-50%); width:600px; height:600px; background:radial-gradient(ellipse, rgba(30,100,200,0.15) 0%, rgba(30,100,200,0.05) 40%, transparent 70%); z-index:0; pointer-events:none;"></div>
-    <div class="free-lens-content">
-      <h2 style="font-weight:900; line-height:1.05; text-transform:uppercase; margin-bottom:0.8rem; display:flex; flex-direction:column; align-items:center;">
-        <span style="display:block; color:#ffffff; font-size:clamp(2.8rem,5.5vw,4.5rem); letter-spacing:6px;">GET YOUR</span>
-        <span style="display:block; color:#ffffff; font-size:clamp(2.8rem,5.5vw,4.5rem); letter-spacing:2px;">LENSES REPLACED</span>
-      </h2>
-      <p style="font-size:1rem; margin-bottom:1.8rem; opacity:0.75; font-weight:500; letter-spacing:2.5px; text-transform:uppercase;">Any Frame | Any Power | Any Brand</p>
-      <a href="{{ url_for('public.contact') }}" class="glass-btn-professional" style="background:transparent; color:white; padding:0.85rem 2.2rem; border-radius:4px; font-weight:700; font-size:0.95rem; border:2px solid rgba(255,255,255,0.85); margin-bottom:1.8rem; letter-spacing:0.5px; display:inline-block;">Contact Now</a>
-      <p style="font-size:0.7rem; opacity:0.45; text-transform:uppercase; letter-spacing:1.5px; line-height:1.4; font-weight:400; max-width:500px;">₹199/- FITTING CHARGES APPLY | APPLICABLE ON PREMIUM ANTI-GLARE LENSES</p>
+<!-- BRANDS -->
+<section class="section-padding section-fade" style="background:var(--accent-light); overflow:hidden;">
+  <h2 style="text-align:center; margin-bottom:3rem;">We sell trusted brands</h2>
+  <div class="brand-overflow">
+    <div class="brand-carousel">
+      <div class="glass brand-item">Ray-Ban</div>
+      <div class="glass brand-item">Oakley</div>
+      <div class="glass brand-item">Gucci</div>
+      <div class="glass brand-item">Prada</div>
+      <div class="glass brand-item">Vogue</div>
+      <div class="glass brand-item">Armani</div>
+      <div class="glass brand-item">IRUS</div>
+      <div class="glass brand-item">Scott</div>
+      <div class="glass brand-item">Sterling</div>
     </div>
   </div>
 </section>
@@ -202,7 +176,7 @@
 <section class="section-padding section-fade" style="padding:2.5rem 0;">
   <div style="width:100vw; margin-left:calc(50% - 50vw); padding:0;">
     <div style="display:flex; justify-content:center; align-items:center; margin-bottom:2.5rem; padding:0 1.5rem;">
-      <h2 style="font-size:2.2rem;">Popular Frames</h2>
+      <h2 style="font-size:2.2rem;">contacts</h2>
     </div>
     <div class="product-track">
       {% for p in popular %}{{ product_card(p) }}{% else %}
@@ -255,6 +229,22 @@
   </div>
 </section>
 
+<!-- FREE LENS BANNER -->
+<section class="section-fade" style="padding:0 0 4rem 0;">
+  <div class="free-lens-banner">
+    <div style="position:absolute; top:-30%; left:50%; transform:translateX(-50%); width:600px; height:600px; background:radial-gradient(ellipse, rgba(30,100,200,0.15) 0%, rgba(30,100,200,0.05) 40%, transparent 70%); z-index:0; pointer-events:none;"></div>
+    <div class="free-lens-content">
+      <h2 style="font-weight:900; line-height:1.05; text-transform:uppercase; margin-bottom:0.8rem; display:flex; flex-direction:column; align-items:center;">
+        <span style="display:block; color:#ffffff; font-size:clamp(2.8rem,5.5vw,4.5rem); letter-spacing:6px;">GET YOUR</span>
+        <span style="display:block; color:#ffffff; font-size:clamp(2.8rem,5.5vw,4.5rem); letter-spacing:2px;">LENSES REPLACED</span>
+      </h2>
+      <p style="font-size:1rem; margin-bottom:1.8rem; opacity:0.75; font-weight:500; letter-spacing:2.5px; text-transform:uppercase;">Any Frame | Any Power | Any Brand</p>
+      <a href="{{ url_for('public.contact') }}" class="glass-btn-professional" style="background:transparent; color:white; padding:0.85rem 2.2rem; border-radius:4px; font-weight:700; font-size:0.95rem; border:2px solid rgba(255,255,255,0.85); margin-bottom:1.8rem; letter-spacing:0.5px; display:inline-block;">Contact Now</a>
+      <p style="font-size:0.7rem; opacity:0.45; text-transform:uppercase; letter-spacing:1.5px; line-height:1.4; font-weight:400; max-width:500px;">₹199/- FITTING CHARGES APPLY | APPLICABLE ON PREMIUM ANTI-GLARE LENSES</p>
+    </div>
+  </div>
+</section>
+
 <!-- GALLERY SPOTLIGHT -->
 <section class="section-fade" style="background:var(--bg-main); width:100vw; margin-left:calc(50% - 50vw); padding:4rem 0; overflow:hidden;">
   <h2 style="text-align:center; margin-bottom:3rem; font-size:2.5rem;">Gallery Spotlight</h2>
@@ -285,15 +275,27 @@
   </div>
 </section>
 
+<!-- FEATURES -->
+<section class="section-padding section-fade" style="background:var(--bg-glass); border-bottom:1px solid rgba(255,255,255,0.05);">
+  <div class="features-grid">
+    <div class="glass feature-card"><div style="font-size:2.5rem; margin-bottom:1rem;">🚚</div><h3 style="font-size:1.2rem; margin-bottom:0.5rem;">Free Shipping</h3><p style="color:var(--text-muted); font-size:0.95rem;">On all orders over ₹999</p></div>
+    <div class="glass feature-card"><div style="font-size:2.5rem; margin-bottom:1rem;">🔁</div><h3 style="font-size:1.2rem; margin-bottom:0.5rem;">14-Day Returns</h3><p style="color:var(--text-muted); font-size:0.95rem;">Hassle-free return policy</p></div>
+    <div class="glass feature-card"><div style="font-size:2.5rem; margin-bottom:1rem;">🛡️</div><h3 style="font-size:1.2rem; margin-bottom:0.5rem;">1 Year Warranty</h3><p style="color:var(--text-muted); font-size:0.95rem;">On all frames and lenses</p></div>
+    <div class="glass feature-card"><div style="font-size:2.5rem; margin-bottom:1rem;">⚕️</div><h3 style="font-size:1.2rem; margin-bottom:0.5rem;">Certified Opticians</h3><p style="color:var(--text-muted); font-size:0.95rem;">Expert advice available</p></div>
+  </div>
+</section>
+
 <!-- NEWSLETTER -->
 <section class="section-padding section-fade" style="display:flex; justify-content:center;">
   <div class="glass newsletter-box">
     <h2 style="font-size:2.5rem; margin-bottom:1rem;">Stay Clear, Stay Stylish</h2>
     <p style="color:var(--text-muted); margin-bottom:2.5rem;">Subscribe to our newsletter for exclusive offers and vision tips.</p>
-    <form action="#" method="post" style="display:flex; gap:1rem; max-width:500px; margin:0 auto; flex-wrap:wrap; justify-content:center;">
-      <input type="email" name="email" placeholder="Enter your email" class="glass" style="flex:1; padding:1rem 1.5rem; border-radius:1rem; min-width:200px; color:var(--text-main); border:none; outline:none;" />
-      <button type="submit" style="padding:1rem 2rem; background:var(--primary); color:white; border-radius:1rem; font-weight:600; border:none; cursor:pointer; font-size:1rem;">Subscribe</button>
+    <form id="newsletterForm" action="/subscribe" method="post" style="display:flex; gap:1rem; max-width:500px; margin:0 auto; flex-wrap:wrap; justify-content:center;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="email" name="email" id="newsletterEmail" placeholder="Enter your email" class="glass" style="flex:1; padding:1rem 1.5rem; border-radius:1rem; min-width:200px; color:var(--text-main); border:none; outline:none;" />
+      <button type="submit" id="newsletterBtn" style="padding:1rem 2rem; background:var(--primary); color:white; border-radius:1rem; font-weight:600; border:none; cursor:pointer; font-size:1rem;">Subscribe</button>
     </form>
+    <div id="newsletterToast" style="display:none; margin-top:1.25rem; padding:0.9rem 1.1rem; border-radius:0.9rem; font-weight:600; text-align:center;"></div>
   </div>
 </section>
 
@@ -301,6 +303,60 @@
 
 {% block extra_js %}
 <script>
+  // Newsletter subscribe popup
+  const newsletterForm = document.getElementById('newsletterForm');
+  const newsletterToast = document.getElementById('newsletterToast');
+  const newsletterBtn = document.getElementById('newsletterBtn');
+
+  function showNewsletterToast(message, success) {
+    if (!newsletterToast) return;
+    newsletterToast.textContent = message;
+    newsletterToast.style.display = 'block';
+    newsletterToast.style.background = success ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)';
+    newsletterToast.style.border = success ? '1px solid rgba(34,197,94,0.35)' : '1px solid rgba(239,68,68,0.35)';
+    newsletterToast.style.color = success ? '#22c55e' : '#f87171';
+    setTimeout(() => {
+      if (newsletterToast) newsletterToast.style.display = 'none';
+    }, 4000);
+  }
+
+  if (newsletterForm) {
+    newsletterForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const emailInput = document.getElementById('newsletterEmail');
+      const email = (emailInput?.value || '').trim();
+      if (!email) {
+        showNewsletterToast('Please enter a valid email address.', false);
+        return;
+      }
+
+      newsletterBtn.disabled = true;
+      newsletterBtn.textContent = 'Submitting…';
+
+      try {
+        const resp = await fetch('/subscribe', {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: new FormData(newsletterForm),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (resp.ok && data.success) {
+          emailInput.value = '';
+          showNewsletterToast(data.message || 'Subscribed successfully.', true);
+        } else {
+          showNewsletterToast(data.message || 'Could not subscribe right now.', false);
+        }
+      } catch (err) {
+        showNewsletterToast('Could not subscribe right now. Please try again.', false);
+      } finally {
+        newsletterBtn.disabled = false;
+        newsletterBtn.textContent = 'Subscribe';
+      }
+    });
+  }
+
   // Product card helper
   function productCardHtml(p) {
     const price = p.sale_price ? p.sale_price : p.price;

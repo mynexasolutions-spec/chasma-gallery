@@ -11,7 +11,7 @@
   <h1 style="font-size:1.5rem; font-weight:700; color:var(--admin-text-main); margin:0;">{{ 'Edit Brand' if brand else 'Create New Brand' }}</h1>
 </div>
 
-<form method="post" action="{% if brand %}{{ url_for('admin_brand_edit', brand_id=brand.id) if admin_brand_edit else '#' }}{% else %}{{ url_for('admin_brand_new') }}{% endif %}" class="admin-card" style="padding:2.5rem; max-width:600px;" enctype="multipart/form-data">
+<form method="post" action="{% if brand %}{{ url_for('admin_brand_edit', brand_id=brand.id) }}{% else %}{{ url_for('admin_brand_new') }}{% endif %}" class="admin-card" style="padding:2.5rem; max-width:600px;" enctype="multipart/form-data">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
   <div style="margin-bottom:1.5rem;">

@@ -133,10 +133,10 @@
   new Chart(ctx, {
     type: 'line',
     data: {
-      labels: {{ chart_data.labels | safe }},
+      labels: {{ chart_data['labels'] | tojson | safe }},
       datasets: [{
         label: 'Revenue (₹)',
-        data: {{ chart_data.values | safe }},
+        data: {{ chart_data['values'] | tojson | safe }},
         borderColor: '#6366f1',
         backgroundColor: 'rgba(99, 102, 241, 0.1)',
         borderWidth: 3,

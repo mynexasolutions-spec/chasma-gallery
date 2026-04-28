@@ -104,11 +104,13 @@ def cart_remove():
 def cart_update():
     cart = session.get("cart", {})
     for key in list(cart.keys()):
-        new_qty = int(request.form.get(f"qty_{key}", 0))
-        if new_qty <= 0:
-            del cart[key]
-        else:
-            cart[key]["qty"] = new_qty
+        current_qty = int(cart[key].get("qty", 1) or 1)
+        raw_qty = request.form.get(f"qty_{key}", current_qty)
+        try:
+            new_qty = int(raw_qty)
+        except (TypeError, ValueError):
+            new_qty = current_qty
+        cart[key]["qty"] = max(1, new_qty)
     session["cart"] = cart
     flash("Cart updated.", "success")
     return redirect(url_for("cart.view_cart"))

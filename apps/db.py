@@ -240,6 +240,11 @@ _MIGRATIONS = [
     "CREATE INDEX IF NOT EXISTS idx_brands_slug              ON brands(slug)",
     "CREATE INDEX IF NOT EXISTS idx_product_reviews_pid      ON product_reviews(product_id, is_approved)",
     "CREATE INDEX IF NOT EXISTS idx_attributes_slug          ON attributes(slug)",
+    """CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        email VARCHAR(255) UNIQUE NOT NULL,
+        subscribed_at TIMESTAMP DEFAULT NOW()
+    )""",
 ]
 
 

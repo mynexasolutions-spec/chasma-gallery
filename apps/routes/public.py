@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, Response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, Response, jsonify
 import db
 from queries import (
     get_products, get_categories, get_brands,
@@ -116,6 +116,30 @@ def contact():
             flash("Thank you for your message! We'll get back to you soon.", "success")
             return redirect(url_for("public.contact"))
     return render_template("contact.html")
+
+
+@bp.route("/subscribe", methods=["POST"])
+def subscribe():
+    email = request.form.get("email", "").strip()
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest" or "application/json" in (request.headers.get("Accept") or "")
+    if email:
+        try:
+            db.execute("INSERT INTO newsletter_subscribers (email) VALUES (%s) ON CONFLICT (email) DO NOTHING", [email])
+            message = "Thank you for subscribing to our newsletter!"
+            if is_ajax:
+                return jsonify({"success": True, "message": message})
+            flash(message, "success")
+        except Exception as e:
+            message = "An error occurred while subscribing."
+            if is_ajax:
+                return jsonify({"success": False, "message": message}), 500
+            flash(message, "error")
+    else:
+        message = "Please enter a valid email address."
+        if is_ajax:
+            return jsonify({"success": False, "message": message}), 400
+        flash(message, "error")
+    return redirect(request.referrer or url_for("public.index"))
 
 
 @bp.route("/sitemap.xml")

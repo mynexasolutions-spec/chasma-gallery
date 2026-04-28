@@ -418,6 +418,10 @@ def register(app):
     @require_admin
     def admin_category_delete(cat_id):
         try:
+            # Manually decouple products and subcategories before deletion
+            db.execute("UPDATE products SET category_id = NULL WHERE category_id = %s", [cat_id])
+            db.execute("UPDATE categories SET parent_id = NULL WHERE parent_id = %s", [cat_id])
+            
             db.execute("DELETE FROM categories WHERE id=%s", [cat_id])
             get_categories.cache_clear()
             get_featured_categories.cache_clear()
@@ -432,7 +436,15 @@ def register(app):
     @require_admin
     def admin_brands():
         try:
-            brands = db.query("SELECT * FROM brands ORDER BY name ASC")
+            brands = db.query(
+                """
+                SELECT b.*, COUNT(p.id) AS product_count
+                FROM brands b
+                LEFT JOIN products p ON p.brand_id = b.id
+                GROUP BY b.id
+                ORDER BY b.name ASC
+                """
+            )
         except Exception as e:
             brands = []
             flash(f"Error: {e}", "error")
@@ -480,6 +492,9 @@ def register(app):
     @require_admin
     def admin_brand_delete(brand_id):
         try:
+            # Manually decouple products before deletion
+            db.execute("UPDATE products SET brand_id = NULL WHERE brand_id = %s", [brand_id])
+            
             db.execute("DELETE FROM brands WHERE id=%s", [brand_id])
             flash("Brand deleted.", "success")
         except Exception as e:
@@ -563,6 +578,16 @@ def register(app):
             customers = []
             flash(f"Error: {e}", "error")
         return render_template("admin/customers.html", customers=customers)
+
+    @app.route("/admin/subscribers")
+    @require_admin
+    def admin_subscribers():
+        try:
+            subscribers = db.query("SELECT * FROM newsletter_subscribers ORDER BY subscribed_at DESC")
+        except Exception as e:
+            subscribers = []
+            flash(f"Error loading subscribers: {e}", "error")
+        return render_template("admin/subscribers.html", subscribers=subscribers)
 
     # ── Attributes ─────────────────────────────────────────────────────────────
 
