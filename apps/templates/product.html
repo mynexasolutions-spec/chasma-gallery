@@ -121,6 +121,7 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
         <input type="hidden" name="product_id" id="cartProductId" value="{{ product.id }}" />
         <input type="hidden" name="variation_id" id="cartVariationId" value="" />
+        <input type="hidden" name="selected_options" id="cartSelectedOptions" value="" />
         
         <div style="display:flex; align-items:center; border:1px solid var(--border-glass); border-radius:0.75rem; overflow:hidden; background:rgba(255,255,255,0.05);">
           <button type="button" onclick="qtyChange(-1)" style="padding:1rem 1.25rem; background:transparent; border:none; color:var(--text-main); cursor:pointer; font-size:1.2rem; transition:0.2s;">−</button>
@@ -224,6 +225,11 @@
   function qtyChange(delta) {
     const inp = document.getElementById('qtyInput');
     inp.value = Math.max(1, Math.min(99, parseInt(inp.value) + delta));
+    // If in independent-attribute mode (no variation matched), update price display
+    if (!document.getElementById('cartVariationId').value) {
+      document.getElementById('displayPrice').textContent =
+        '₹' + Math.round(basePrice * parseInt(inp.value));
+    }
   }
 
   function switchTab(tabId) {
@@ -259,47 +265,65 @@
 
   // --- Variation Logic ---
   const variations = {{ variations | tojson | safe }};
-  
+  const basePrice   = {{ product.sale_price or product.price or 0 }};
+
   function updateVariation() {
-    const selects = document.querySelectorAll('.variant-select');
-    const selectedIds = Array.from(selects).map(s => s.value).filter(val => val !== "");
-    const btn = document.getElementById('addToCartBtn');
-    const priceDisplay = document.getElementById('displayPrice');
-    const skuDisplay = document.getElementById('displaySku');
-    const basePrice = '₹{{ "%.0f"|format(product.sale_price or product.price) }}';
-    
-    if (selectedIds.length < selects.length) {
+    const selects       = document.querySelectorAll('.variant-select');
+    const btn           = document.getElementById('addToCartBtn');
+    const priceDisplay  = document.getElementById('displayPrice');
+    const skuDisplay    = document.getElementById('displaySku');
+    const qtyInput      = document.getElementById('qtyInput');
+    const variationInput = document.getElementById('cartVariationId');
+    const optionsInput  = document.getElementById('cartSelectedOptions');
+
+    const filled     = Array.from(selects).filter(s => s.value !== '');
+    const allFilled  = filled.length === selects.length;
+    const selectedIds = filled.map(s => s.value);
+
+    // Nothing selected yet
+    if (filled.length === 0) {
       btn.disabled = true;
-      btn.innerText = 'Select Options';
-      priceDisplay.innerText = basePrice;
+      btn.textContent = 'Select Options';
+      priceDisplay.textContent = '₹' + Math.round(basePrice);
+      variationInput.value = '';
+      if (optionsInput) optionsInput.value = '';
       return;
     }
 
-    // Find variation where variation.attribute_value_ids contains ALL selectedIds
-    const match = variations.find(v => {
-      return selectedIds.every(id => v.attribute_value_ids.includes(id));
-    });
-
-    if (match) {
-      document.getElementById('cartVariationId').value = match.id;
-      priceDisplay.innerText = basePrice;
-      skuDisplay.innerText = 'SKU: ' + match.sku;
-      btn.disabled = false;
-      btn.innerText = 'Add to Cart 🛒';
-      
-      const stockDisplay = document.getElementById('displayStock');
-      if ({{ product.stock_quantity or 0 }} > 0) {
-        stockDisplay.innerHTML = '<span style="color:#4ade80; font-weight:600;">✓ In Stock</span>';
-      } else {
-        stockDisplay.innerHTML = '<span style="color:#f87171; font-weight:600;">✗ Out of Stock</span>';
-        btn.disabled = true;
-        btn.innerText = 'Out of Stock';
+    // ── Mode 1: traditional variable product — try to find an exact variation match ──
+    if (allFilled && variations.length > 0) {
+      const match = variations.find(v =>
+        v.attribute_value_ids &&
+        selectedIds.every(id => v.attribute_value_ids.map(String).includes(String(id)))
+      );
+      if (match) {
+        variationInput.value = match.id;
+        if (optionsInput) optionsInput.value = '';
+        qtyInput.value = 1;
+        priceDisplay.textContent = '₹' + Math.round(basePrice);
+        skuDisplay.textContent = 'SKU: ' + (match.sku || '{{ product.sku or "N/A" }}');
+        btn.disabled = false;
+        btn.textContent = 'Add to Cart 🛒';
+        return;
       }
-    } else {
-      btn.disabled = true;
-      btn.innerText = 'Unavailable Combination';
-      priceDisplay.innerText = basePrice;
     }
+
+    // ── Mode 2: independent attributes (e.g. Left Eye + Right Eye for contacts) ──
+    // Any ≥1 selection enables the button.
+    // qty auto-sets to number of selected attributes; price shows base × qty.
+    variationInput.value = '';
+    const qty = filled.length;
+    qtyInput.value = qty;
+    priceDisplay.textContent = '₹' + Math.round(basePrice * qty);
+
+    const optStr = filled.map(s => {
+      const label = s.closest('.attr-group').querySelector('label').textContent.trim();
+      return label + ': ' + s.options[s.selectedIndex].text;
+    }).join(' | ');
+    if (optionsInput) optionsInput.value = optStr;
+
+    btn.disabled = false;
+    btn.textContent = qty > 1 ? 'Add Both Eyes to Cart 🛒' : 'Add to Cart 🛒';
   }
 </script>
 {% endblock %}

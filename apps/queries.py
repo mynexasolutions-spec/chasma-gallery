@@ -71,8 +71,13 @@ def get_products(search=None, categories=(), brands=(), shape=None,
         params += [f"%{search}%", f"%{search}%", f"%{search}%"]
     if cats:
         ph = ",".join(["%s"] * len(cats))
-        conditions.append(f"c.slug IN ({ph})")
-        params += list(cats)
+        # Include products from the selected category AND any of its child categories
+        conditions.append(f"""p.category_id IN (
+            SELECT id FROM categories
+            WHERE slug IN ({ph})
+               OR parent_id IN (SELECT id FROM categories WHERE slug IN ({ph}))
+        )""")
+        params += list(cats) + list(cats)
     if brnds:
         ph = ",".join(["%s"] * len(brnds))
         conditions.append(f"b.slug IN ({ph})")
@@ -236,11 +241,31 @@ def get_product_detail(product_id):
             WHERE pv.product_id = %s
         """, [product_id])
 
-    # Batch-load all attribute values in ONE query
+    # Batch-load attribute values with correct priority:
+    # 1. Admin-selected values for this product (product_attribute_values)
+    # 2. Values linked via generated variations (variation_attribute_values)
+    # 3. All values for the attribute (last resort — should rarely be reached)
     if attributes:
         attr_ids     = [a["id"] for a in attributes]
         placeholders = ",".join(["%s"] * len(attr_ids))
-        all_values   = db.query(
+
+        # Priority 1: values the admin explicitly checked for this product
+        pav_rows = db.query(
+            f"""SELECT DISTINCT av.attribute_id, av.id, av.value
+                FROM attribute_values av
+                JOIN product_attribute_values pav ON pav.attribute_value_id = av.id
+                WHERE av.attribute_id IN ({placeholders}) AND pav.product_id = %s
+                ORDER BY av.value ASC""",
+            attr_ids + [product_id],
+        )
+        pav_map = {}
+        for row in pav_rows:
+            pav_map.setdefault(str(row["attribute_id"]), []).append(
+                {"id": str(row["id"]), "value": row["value"]}
+            )
+
+        # Priority 2: values linked through generated product variations
+        var_rows = db.query(
             f"""SELECT DISTINCT av.attribute_id, av.id, av.value
                 FROM attribute_values av
                 JOIN variation_attribute_values vav ON vav.attribute_value_id = av.id
@@ -249,13 +274,24 @@ def get_product_detail(product_id):
                 ORDER BY av.value ASC""",
             attr_ids + [product_id],
         )
-        values_map = {}
-        for row in all_values:
-            values_map.setdefault(str(row["attribute_id"]), []).append(
-                {"id": row["id"], "value": row["value"]}
+        var_map = {}
+        for row in var_rows:
+            var_map.setdefault(str(row["attribute_id"]), []).append(
+                {"id": str(row["id"]), "value": row["value"]}
             )
+
         for attr in attributes:
-            attr["values"] = values_map.get(str(attr["id"]), [])
+            aid    = str(attr["id"])
+            values = pav_map.get(aid) or var_map.get(aid)
+            if not values:
+                # Priority 3: load all values for this attribute (fallback)
+                fallback = db.query(
+                    "SELECT id, value FROM attribute_values "
+                    "WHERE attribute_id = %s ORDER BY value ASC",
+                    [attr["id"]],
+                )
+                values = [{"id": str(r["id"]), "value": r["value"]} for r in fallback]
+            attr["values"] = values
 
     return product, images, variations, reviews, attributes
 
@@ -273,11 +309,19 @@ def get_related_products(category_slug, exclude_id, limit=4):
 def get_categories():
     return db.query("""
         SELECT c.id, c.name, c.slug, c.parent_id, cp.name AS parent_name, c.image_url AS img,
-               COUNT(p.id) AS product_count
+               (
+                   SELECT COUNT(*)
+                   FROM products p
+                   WHERE p.is_active = TRUE
+                     AND (
+                         p.category_id = c.id
+                         OR p.category_id IN (
+                             SELECT id FROM categories WHERE parent_id = c.id
+                         )
+                     )
+               ) AS product_count
         FROM categories c
         LEFT JOIN categories cp ON cp.id = c.parent_id
-        LEFT JOIN products p ON p.category_id = c.id AND p.is_active = TRUE
-        GROUP BY c.id, c.name, c.slug, c.parent_id, cp.name, c.image_url
         ORDER BY
             CASE WHEN c.slug = 'eyeglasses' THEN 0
                  WHEN c.slug = 'contacts'   THEN 1

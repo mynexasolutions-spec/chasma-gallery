@@ -23,9 +23,10 @@ def view_cart():
 
 @bp.route("/cart/add", methods=["POST"])
 def cart_add():
-    product_id   = str(request.form.get("product_id", "")).strip()
-    variation_id = str(request.form.get("variation_id", "")).strip()
-    qty          = max(1, int(request.form.get("qty", 1)))
+    product_id       = str(request.form.get("product_id", "")).strip()
+    variation_id     = str(request.form.get("variation_id", "")).strip()
+    selected_options = str(request.form.get("selected_options", "")).strip()
+    qty              = max(1, int(request.form.get("qty", 1)))
 
     if not product_id:
         flash("Invalid product.", "error")
@@ -37,32 +38,47 @@ def cart_add():
             flash("Product not found.", "error")
             return redirect(request.referrer or url_for("public.shop"))
 
-        item_key     = variation_id if variation_id else product_id
         display_name = product["name"]
         price        = float(product.get("sale_price") or product.get("price") or 0)
         sku          = product.get("sku", "")
         img          = product.get("image_url", "")
 
         if variation_id:
+            # Traditional variation — look up the combo label from the DB
             var = db.query_one("SELECT * FROM product_variations WHERE id = %s", [variation_id])
             if var:
-                price = float(product.get("sale_price") or product.get("price") or price)
-                sku   = var.get("sku", sku)
-                opts  = db.query("""
+                sku  = var.get("sku", sku)
+                opts = db.query("""
                     SELECT av.value FROM attribute_values av
                     JOIN variation_attribute_values vav ON vav.attribute_value_id = av.id
                     WHERE vav.variation_id = %s
                 """, [variation_id])
                 if opts:
                     display_name += f" ({' / '.join(o['value'] for o in opts)})"
+            item_key = variation_id
+
+        elif selected_options:
+            # Independent-attribute mode (e.g. contacts: Left Eye + Right Eye).
+            # qty already reflects how many attributes were selected (sent from JS).
+            display_name += f" ({selected_options})"
+            # Use a stable key so the same eye combination stacks, different ones don't.
+            item_key = f"{product_id}|{selected_options}"
+
+        else:
+            item_key = product_id
 
         cart = session.get("cart", {})
         if item_key in cart:
             cart[item_key]["qty"] += qty
         else:
             cart[item_key] = {
-                "product_id": product_id, "variation_id": variation_id or None,
-                "name": display_name, "price": price, "qty": qty, "image": img, "sku": sku,
+                "product_id": product_id,
+                "variation_id": variation_id or None,
+                "name": display_name,
+                "price": price,
+                "qty": qty,
+                "image": img,
+                "sku": sku,
             }
         session["cart"] = cart
         flash(f"'{display_name}' added to cart!", "success")
