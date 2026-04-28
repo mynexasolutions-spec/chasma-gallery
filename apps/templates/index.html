@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}ChasmaGallery – Eyewear for the Modern Vision{% endblock %}
+{% block title %}ChasmaGallery – Premium Eyewear Store in Sitapur, Uttar Pradesh{% endblock %}
+{% block meta_description %}ChasmaGallery is Sitapur's #1 destination for premium eyewear, designer sunglasses, prescription glasses and contact lenses. Shop online or visit us in Sitapur, UP.{% endblock %}
+{% block meta_keywords %}chasma gallery Sitapur, eyewear store Sitapur UP, buy glasses Sitapur, sunglasses Uttar Pradesh, prescription glasses online India, optical shop near me Sitapur, chasma shop UP{% endblock %}
 
 {% macro product_card(p) %}
 <a href="{{ url_for('public.product_detail', product_id=p.id) }}" class="glass product-card">

@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, Response
 import db
 from queries import (
     get_products, get_categories, get_brands,
@@ -116,3 +116,76 @@ def contact():
             flash("Thank you for your message! We'll get back to you soon.", "success")
             return redirect(url_for("public.contact"))
     return render_template("contact.html")
+
+
+@bp.route("/sitemap.xml")
+def sitemap():
+    base = request.host_url.rstrip("/")
+
+    static_pages = [
+        ("",         "1.0", "daily"),
+        ("/shop",    "0.9", "daily"),
+        ("/about",   "0.7", "monthly"),
+        ("/contact", "0.7", "monthly"),
+    ]
+
+    try:
+        products = db.query(
+            "SELECT id, updated_at FROM products WHERE is_active = TRUE ORDER BY updated_at DESC"
+        )
+    except Exception:
+        products = []
+
+    try:
+        categories = db.query(
+            "SELECT slug FROM categories WHERE is_active = TRUE"
+        )
+    except Exception:
+        categories = []
+
+    lines = ['<?xml version="1.0" encoding="UTF-8"?>',
+             '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+
+    for path, priority, freq in static_pages:
+        lines.append(
+            f"  <url><loc>{base}{path}</loc>"
+            f"<changefreq>{freq}</changefreq>"
+            f"<priority>{priority}</priority></url>"
+        )
+
+    for p in products:
+        updated = p.get("updated_at")
+        lastmod = f"<lastmod>{updated.strftime('%Y-%m-%d')}</lastmod>" if updated else ""
+        lines.append(
+            f"  <url><loc>{base}/product/{p['id']}</loc>"
+            f"{lastmod}<changefreq>weekly</changefreq>"
+            f"<priority>0.8</priority></url>"
+        )
+
+    for c in categories:
+        lines.append(
+            f"  <url><loc>{base}/shop?category={c['slug']}</loc>"
+            f"<changefreq>weekly</changefreq>"
+            f"<priority>0.7</priority></url>"
+        )
+
+    lines.append("</urlset>")
+    return Response("\n".join(lines), mimetype="application/xml")
+
+
+@bp.route("/robots.txt")
+def robots():
+    base = request.host_url.rstrip("/")
+    content = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /admin/\n"
+        "Disallow: /cart\n"
+        "Disallow: /checkout\n"
+        "Disallow: /account\n"
+        "Disallow: /login\n"
+        "Disallow: /register\n"
+        "\n"
+        f"Sitemap: {base}/sitemap.xml\n"
+    )
+    return Response(content, mimetype="text/plain")

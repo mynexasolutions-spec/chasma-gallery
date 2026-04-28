@@ -3,8 +3,86 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% block title %}ChasmaGallery – Eyewear for the Modern Vision{% endblock %}</title>
-  <meta name="description" content="{% block meta_description %}Discover premium eyewear, sunglasses, contact lenses and accessories at ChasmaGallery.{% endblock %}" />
+
+  <!-- ── Primary meta ── -->
+  <title>{% block title %}ChasmaGallery – Premium Eyewear Store in Sitapur, UP{% endblock %}</title>
+  <meta name="description" content="{% block meta_description %}Shop premium eyewear, sunglasses, prescription glasses and contact lenses at ChasmaGallery – Sitapur's most trusted optical store. Wide range of branded frames at affordable prices.{% endblock %}" />
+  <meta name="keywords"    content="{% block meta_keywords %}eyewear shop Sitapur, glasses Sitapur UP, chasma gallery, sunglasses Uttar Pradesh, prescription glasses Sitapur, optical store Sitapur, buy glasses online India, branded spectacles UP, contact lenses Sitapur, chasma Sitapur{% endblock %}" />
+  <meta name="author"      content="ChasmaGallery" />
+  <meta name="robots"      content="{% block meta_robots %}index, follow{% endblock %}" />
+  <link rel="canonical"    href="{% block canonical_url %}{{ request.host_url.rstrip('/') }}{{ request.path }}{% endblock %}" />
+
+  <!-- ── Favicons ── -->
+  <link rel="icon"             type="image/x-icon" href="{{ url_for('static', filename='images/favicons/favicon.ico') }}" />
+  <link rel="icon"             type="image/png" sizes="16x16"  href="{{ url_for('static', filename='images/favicons/favicon-16x16.png') }}" />
+  <link rel="icon"             type="image/png" sizes="32x32"  href="{{ url_for('static', filename='images/favicons/favicon-32x32.png') }}" />
+  <link rel="apple-touch-icon" sizes="180x180"               href="{{ url_for('static', filename='images/favicons/apple-touch-icon.png') }}" />
+  <link rel="manifest"         href="{{ url_for('static', filename='images/favicons/site.webmanifest') }}" />
+
+  <!-- ── Open Graph ── -->
+  <meta property="og:type"        content="{% block og_type %}website{% endblock %}" />
+  <meta property="og:site_name"   content="ChasmaGallery" />
+  <meta property="og:locale"      content="en_IN" />
+  <meta property="og:title"       content="{% block og_title %}{{ self.title() }}{% endblock %}" />
+  <meta property="og:description" content="{% block og_description %}{{ self.meta_description() }}{% endblock %}" />
+  <meta property="og:image"       content="{% block og_image %}{{ request.host_url.rstrip('/') }}{{ url_for('static', filename='images/logo.png') }}{% endblock %}" />
+  <meta property="og:url"         content="{{ request.url }}" />
+
+  <!-- ── Twitter Card ── -->
+  <meta name="twitter:card"        content="summary_large_image" />
+  <meta name="twitter:title"       content="{{ self.og_title() }}" />
+  <meta name="twitter:description" content="{{ self.og_description() }}" />
+  <meta name="twitter:image"       content="{{ self.og_image() }}" />
+
+  <!-- ── Geo / Location (Sitapur, Uttar Pradesh) ── -->
+  <meta name="geo.region"    content="IN-UP" />
+  <meta name="geo.placename" content="Sitapur, Uttar Pradesh, India" />
+  <meta name="geo.position"  content="27.5674;80.6797" />
+  <meta name="ICBM"          content="27.5674, 80.6797" />
+
+  <!-- ── LocalBusiness Schema.org ── -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "OpticalStore",
+    "name": "Chasma Gallery",
+    "url": "{{ request.host_url.rstrip('/') }}",
+    "logo": "{{ request.host_url.rstrip('/') }}{{ url_for('static', filename='images/logo.png') }}",
+    "image": "{{ request.host_url.rstrip('/') }}{{ url_for('static', filename='images/logo.png') }}",
+    "description": "Sitapur's premier optical store offering premium eyewear, sunglasses, prescription glasses and contact lenses.",
+    "telephone": "+91-9891983824",
+    "email": "Chasmagallery.pvt@gmail.com",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Sitapur Eye Hospital Road",
+      "addressLocality": "Sitapur",
+      "addressRegion": "Uttar Pradesh",
+      "postalCode": "261001",
+      "addressCountry": "IN"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 27.5674,
+      "longitude": 80.6797
+    },
+    "openingHoursSpecification": [
+      {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+        "opens": "10:00",
+        "closes": "20:00"
+      }
+    ],
+    "priceRange": "₹₹",
+    "currenciesAccepted": "INR",
+    "paymentAccepted": "Cash, UPI, Credit Card, Debit Card",
+    "areaServed": [
+      {"@type": "City", "name": "Sitapur"},
+      {"@type": "State", "name": "Uttar Pradesh"}
+    ]
+  }
+  </script>
+
   <link rel="stylesheet" href="{{ url_for('static', filename='css/chasma.css') }}" />
   {% block extra_css %}{% endblock %}
 </head>
