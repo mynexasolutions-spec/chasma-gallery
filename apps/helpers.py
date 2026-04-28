@@ -121,15 +121,47 @@ def handle_upload(file, folder="chasma-gallery"):
         raise RuntimeError(f"Image upload failed: {e}") from e
 
 
+CLOUDINARY_MAPPING = {
+  "hero/hero1_classic_glasses.jpg": "https://res.cloudinary.com/dljlnkh6x/image/upload/v1777410761/chasma-gallery/hero/wu2nu6affbnpbx1qp2qs.jpg",
+  "hero/hero2_sunglasses.jpg": "https://res.cloudinary.com/dljlnkh6x/image/upload/v1777410761/chasma-gallery/hero/flyndisgsvsdz5nm4mh5.jpg",
+  "sections/cat_contacts.jpg": "https://res.cloudinary.com/dljlnkh6x/image/upload/v1777410762/chasma-gallery/sections/jqjo2r5q5lmmz3swkfah.jpg",
+  "sections/cat_eyewear.jpg": "https://res.cloudinary.com/dljlnkh6x/image/upload/v1777410763/chasma-gallery/sections/qipkkszcot28lztdbmqj.jpg",
+  "sections/promo_sunglasses.jpg": "https://res.cloudinary.com/dljlnkh6x/image/upload/v1777410764/chasma-gallery/sections/ysfuj7eomzbpxtkatre2.jpg",
+  "sections/shape_geometric.jpg": "https://res.cloudinary.com/dljlnkh6x/image/upload/v1777410765/chasma-gallery/sections/xj8z9xoq7lkduxuxk6oj.jpg",
+  "sections/shape_rectangle.jpg": "https://res.cloudinary.com/dljlnkh6x/image/upload/v1777410765/chasma-gallery/sections/g9g8mo7a3xaxlyuxrkbf.jpg",
+  "sections/shape_round.jpg": "https://res.cloudinary.com/dljlnkh6x/image/upload/v1777410766/chasma-gallery/sections/lfhmk5a4itzqv8z2yraz.jpg",
+  "about/Ameen_chasma.webp": "https://res.cloudinary.com/dljlnkh6x/image/upload/v1777410767/chasma-gallery/about/mqlc5ukyblmdkwcnol5m.webp",
+  "hero.png": "https://res.cloudinary.com/dljlnkh6x/image/upload/v1777410768/chasma-gallery/static/rlw5brukbebp1w0ge3uh.jpg",
+  "logo.png": "https://res.cloudinary.com/dljlnkh6x/image/upload/v1777410769/chasma-gallery/static/socsmbmyepmlksqadees.png",
+  "men.png": "https://res.cloudinary.com/dljlnkh6x/image/upload/v1777410770/chasma-gallery/static/ti8vlzhnzkopmrs1h6tw.jpg",
+  "placeholder.png": "https://res.cloudinary.com/dljlnkh6x/image/upload/v1777410770/chasma-gallery/static/we9iq7o3zsg4axrtkwbi.png",
+  "women.png": "https://res.cloudinary.com/dljlnkh6x/image/upload/v1777410772/chasma-gallery/static/abrqjacgak4pj7k4yjoj.jpg"
+}
+
 def resolve_image(image_url):
     from flask import url_for
+    # Default Cloudinary Placeholder
+    PLACEHOLDER = CLOUDINARY_MAPPING.get("placeholder.png", "https://res.cloudinary.com/dljlnkh6x/image/upload/v1777410770/chasma-gallery/static/we9iq7o3zsg4axrtkwbi.png")
+    
     if not image_url:
-        return url_for("static", filename="images/placeholder.png")
+        return PLACEHOLDER
+    
     if image_url.startswith("http"):
         return image_url
-    # Legacy local uploads (files uploaded before Cloudinary migration)
-    if image_url.startswith("/uploads/"):
+        
+    # Check mapping first
+    clean_url = image_url.lstrip("/")
+    if clean_url.startswith("images/"):
+        clean_url = clean_url.replace("images/", "", 1)
+        
+    if clean_url in CLOUDINARY_MAPPING:
+        return CLOUDINARY_MAPPING[clean_url]
+        
+    # If it's a relative path, we check if it's meant to be a static asset
+    if image_url.startswith("/uploads/") or image_url.startswith("uploads/"):
         return url_for("static", filename=image_url.lstrip("/"))
+        
+    # Fallback to static images folder for remaining local assets
     return url_for("static", filename=f"images/{image_url.lstrip('/')}")
 
 

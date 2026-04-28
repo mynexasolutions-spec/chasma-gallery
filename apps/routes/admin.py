@@ -7,7 +7,7 @@ from functools import wraps
 from flask import render_template, request, redirect, url_for, flash, abort, session
 import db
 from helpers import slugify, get_cached_store_settings, get_unique_slug, handle_upload
-from queries import get_products, get_categories, get_brands, get_admin_stats, get_featured_categories, PRODUCTS_SELECT
+from queries import get_products, get_categories, get_brands, get_admin_stats, get_featured_categories, get_trending_shapes, PRODUCTS_SELECT
 
 
 def _sanitize_sku_prefix(prefix, fallback):
@@ -674,6 +674,7 @@ def register(app):
                         "INSERT INTO attribute_values (id, attribute_id, value, image_url) VALUES (%s,%s,%s,%s)",
                         [str(uuid.uuid4()), attr_id, value, image_url]
                     )
+                    get_trending_shapes.cache_clear()
                     flash("Value added", "success")
                 except Exception as e:
                     flash(f"Error: {e}", "error")
@@ -693,6 +694,7 @@ def register(app):
                 new_value = (f.get(f"value_{v_id}") or "").strip()
                 if new_value:
                     db.execute("UPDATE attribute_values SET value=%s WHERE id=%s", [new_value, v_id])
+            get_trending_shapes.cache_clear()
             flash("Attribute values updated.", "success")
         except Exception as e:
             flash(f"Error updating values: {e}", "error")
@@ -704,10 +706,37 @@ def register(app):
         attr_id = request.form.get("attribute_id")
         try:
             db.execute("DELETE FROM attribute_values WHERE id = %s", [val_id])
+            get_trending_shapes.cache_clear()
             flash("Value deleted", "success")
         except Exception as e:
             flash(f"Error: {e}", "error")
         return redirect(url_for("admin_attribute_values", attr_id=attr_id))
+
+    @app.route("/admin/attributes/values/<val_id>/edit", methods=["GET", "POST"])
+    @require_admin
+    def admin_attribute_value_edit(val_id):
+        value = db.query_one("SELECT * FROM attribute_values WHERE id = %s", [val_id])
+        if not value:
+            abort(404)
+        
+        attribute = db.query_one("SELECT * FROM attributes WHERE id = %s", [value["attribute_id"]])
+        
+        if request.method == "POST":
+            new_value = request.form.get("value")
+            image_url = handle_upload(request.files.get("image_file")) or value.get("image_url")
+            
+            try:
+                db.execute(
+                    "UPDATE attribute_values SET value=%s, image_url=%s WHERE id=%s",
+                    [new_value, image_url, val_id]
+                )
+                get_trending_shapes.cache_clear()
+                flash("Value updated", "success")
+                return redirect(url_for("admin_attribute_values", attr_id=value["attribute_id"]))
+            except Exception as e:
+                flash(f"Error: {e}", "error")
+                
+        return render_template("admin/attribute_value_form.html", attribute=attribute, value=value)
 
     # ── Variations ─────────────────────────────────────────────────────────────
 
