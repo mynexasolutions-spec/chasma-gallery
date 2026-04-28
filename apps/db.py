@@ -198,6 +198,14 @@ _MIGRATIONS = [
          ('razorpay_key_id',''), ('razorpay_key_secret','')
        ON CONFLICT (key) DO NOTHING""",
 
+    # ── Shipping settings ───────────────────────────────────────────────────
+    """INSERT INTO store_settings (key, value) VALUES
+         ('shipping_fee','99'),
+         ('free_shipping_threshold','999'),
+         ('free_shipping_enabled','true'),
+         ('free_shipping_all','false')
+       ON CONFLICT (key) DO NOTHING""",
+
     # ── Coupon usage tracking + order discount columns ─────────────────────
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code VARCHAR(100) DEFAULT ''",
     "ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(10,2) DEFAULT 0",

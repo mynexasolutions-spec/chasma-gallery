@@ -830,8 +830,9 @@ def register(app):
     @require_admin
     def admin_settings():
         if request.method == "POST":
-            toggle_keys = ["cod_enabled", "online_payment_enabled"]
-            text_keys   = ["razorpay_key_id", "razorpay_key_secret"]
+            toggle_keys  = ["cod_enabled", "online_payment_enabled", "free_shipping_enabled", "free_shipping_all"]
+            text_keys    = ["razorpay_key_id", "razorpay_key_secret"]
+            numeric_keys = ["shipping_fee", "free_shipping_threshold"]
             try:
                 for key in toggle_keys:
                     value = "true" if request.form.get(key) == "on" else "false"
@@ -842,6 +843,17 @@ def register(app):
                     )
                 for key in text_keys:
                     value = request.form.get(key, "").strip()
+                    db.execute(
+                        "INSERT INTO store_settings (key, value) VALUES (%s,%s) "
+                        "ON CONFLICT (key) DO UPDATE SET value=%s, updated_at=NOW()",
+                        [key, value, value]
+                    )
+                for key in numeric_keys:
+                    raw = request.form.get(key, "").strip()
+                    try:
+                        value = str(max(0, float(raw))) if raw else ("99" if key == "shipping_fee" else "999")
+                    except ValueError:
+                        value = "99" if key == "shipping_fee" else "999"
                     db.execute(
                         "INSERT INTO store_settings (key, value) VALUES (%s,%s) "
                         "ON CONFLICT (key) DO UPDATE SET value=%s, updated_at=NOW()",

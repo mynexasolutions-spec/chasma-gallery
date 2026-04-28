@@ -12,6 +12,20 @@ bp = Blueprint("checkout", __name__)
 ALLOWED_PAYMENT_METHODS = {"cod", "razorpay"}
 
 
+def _calc_shipping(subtotal, settings=None):
+    if settings is None:
+        settings = get_cached_store_settings()
+    # Free on ALL orders
+    if settings.get("free_shipping_all") == "true":
+        return 0.0
+    fee       = float(settings.get("shipping_fee") or 99)
+    threshold = float(settings.get("free_shipping_threshold") or 999)
+    # Free above threshold
+    if settings.get("free_shipping_enabled", "true") == "true" and subtotal >= threshold:
+        return 0.0
+    return fee
+
+
 # ── Coupon validation ──────────────────────────────────────────────────────────
 
 def _validate_coupon(code, user_id, subtotal):
@@ -76,7 +90,7 @@ def apply_coupon():
     if error:
         return jsonify({"valid": False, "error": error})
 
-    shipping  = 0 if subtotal >= 999 else 99
+    shipping  = _calc_shipping(subtotal)
     new_total = round(max(0.0, subtotal + shipping - discount), 2)
 
     return jsonify({
@@ -120,7 +134,7 @@ def rzp_create_order():
             uid = session["user"]["id"]
             _, discount, _ = _validate_coupon(coupon_code, uid, subtotal)
 
-        shipping     = 0 if subtotal >= 999 else 99
+        shipping     = _calc_shipping(subtotal, settings)
         amount_total = max(0.0, subtotal + shipping - discount)
         amount_paisa = int(round(amount_total * 100))
 
@@ -151,10 +165,10 @@ def checkout():
 
     uid            = session["user"]["id"]
     cart, subtotal = refresh_cart_prices(cart)
-    shipping       = 0 if subtotal >= 999 else 99
     session["cart"] = cart
 
     settings       = get_cached_store_settings()
+    shipping       = _calc_shipping(subtotal, settings)
     cod_enabled    = settings.get("cod_enabled", "true") == "true"
     online_enabled = settings.get("online_payment_enabled", "false") == "true"
 
@@ -224,6 +238,9 @@ def checkout():
                 cart=cart, subtotal=subtotal, shipping=shipping, total=subtotal + shipping,
                 settings=settings, cod_enabled=cod_enabled, online_enabled=online_enabled,
                 addresses=addresses,
+                free_shipping_threshold=float(settings.get("free_shipping_threshold") or 999),
+                free_shipping_enabled=settings.get("free_shipping_enabled", "true") == "true",
+                free_shipping_all=settings.get("free_shipping_all") == "true",
             )
 
         # Validate coupon server-side (re-validate even if client showed it valid)
@@ -344,6 +361,9 @@ def checkout():
         cart=cart, subtotal=subtotal, shipping=shipping, total=total,
         settings=settings, cod_enabled=cod_enabled, online_enabled=online_enabled,
         addresses=addresses,
+        free_shipping_threshold=float(settings.get("free_shipping_threshold") or 999),
+        free_shipping_enabled=settings.get("free_shipping_enabled", "true") == "true",
+        free_shipping_all=settings.get("free_shipping_all") == "true",
     )
 
 
