@@ -460,3 +460,75 @@ select.admin-input option {
     padding: 1rem !important;
   }
 }
+
+/* ── Override chasma.css global dark-theme styles so they never bleed into admin ── */
+
+/* Inputs / textareas / selects */
+body.admin-body input,
+body.admin-body input[type="text"],
+body.admin-body input[type="email"],
+body.admin-body input[type="password"],
+body.admin-body input[type="number"],
+body.admin-body input[type="tel"],
+body.admin-body input[type="search"],
+body.admin-body input[type="url"],
+body.admin-body input[type="date"],
+body.admin-body textarea,
+body.admin-body select {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border: 1px solid var(--admin-border) !important;
+  color: var(--admin-text-main) !important;
+  border-radius: 0.5rem !important;
+}
+
+body.admin-body input::placeholder,
+body.admin-body textarea::placeholder {
+  color: var(--admin-text-muted) !important;
+}
+
+body.admin-body input:focus,
+body.admin-body textarea:focus,
+body.admin-body select:focus {
+  border-color: var(--admin-primary) !important;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1) !important;
+  outline: none !important;
+}
+
+/* Headings — use Inter, not chasma's Georgia */
+body.admin-body h1,
+body.admin-body h2,
+body.admin-body h3,
+body.admin-body h4,
+body.admin-body h5,
+body.admin-body h6 {
+  font-family: 'Inter', sans-serif !important;
+  color: var(--admin-text-main) !important;
+}
+
+/* Checkboxes and radio buttons */
+body.admin-body input[type="checkbox"],
+body.admin-body input[type="radio"] {
+  width: auto !important;
+  accent-color: var(--admin-primary);
+}
+
+/* Select dropdown options */
+body.admin-body select option {
+  background-color: #ffffff !important;
+  color: var(--admin-text-main) !important;
+}
+
+/* Links in admin content area */
+body.admin-body .admin-content a:not(.admin-nav-item):not(.admin-btn):not(.btn-primary):not(.btn-outline) {
+  color: var(--admin-primary);
+}
+
+/* Prevent glass dark panel from appearing in admin */
+body.admin-body .admin-card,
+body.admin-body .admin-stat-card,
+body.admin-body .admin-table-container {
+  background: var(--admin-bg-surface) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}

@@ -1,14 +1,3 @@
-# Dependencies
-node_modules/
-.pnpm-store/
-
-# Next.js build outputs
-.next/
-out/
-
-# Turborepo
-.turbo/
-
 # Environment variables
 .env
 .env.*
@@ -22,6 +11,7 @@ __pycache__/
 .Python
 env/
 venv/
+.venv/
 pip-log.txt
 pip-delete-this-directory.txt
 .tox/
@@ -36,13 +26,9 @@ coverage.xml
 # Build outputs
 dist/
 build/
-*.tsbuildinfo
 
 # Logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # OS files
 .DS_Store
@@ -57,3 +43,6 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+
+# Uploads (stored in Cloudinary, local copies not needed in git)
+apps/static/uploads/

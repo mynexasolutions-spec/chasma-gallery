@@ -2,6 +2,8 @@ import re
 import functools
 import time
 import markupsafe
+import cloudinary
+import cloudinary.uploader
 import db
 
 
@@ -97,23 +99,26 @@ def refresh_cart_prices(cart):
 # ─── Jinja2 globals / filters ──────────────────────────────────────────────────
 
 import os
-import uuid
-import werkzeug.utils
 
-def handle_upload(file, folder="uploads"):
+# Cloudinary is configured from the CLOUDINARY_URL environment variable
+# which is loaded via python-dotenv at app startup.
+cloudinary.config(from_url=os.getenv("CLOUDINARY_URL"))
+
+
+def handle_upload(file, folder="chasma-gallery"):
+    """Upload a file to Cloudinary and return its secure URL, or None on failure."""
     if not file or not file.filename:
         return None
-    
-    # Ensure folder exists
-    from flask import current_app
-    base_path = os.path.join(current_app.root_path, "static", folder)
-    if not os.path.exists(base_path):
-        os.makedirs(base_path, exist_ok=True)
-        
-    ext = os.path.splitext(file.filename)[1].lower()
-    new_filename = f"{uuid.uuid4().hex}{ext}"
-    file.save(os.path.join(base_path, new_filename))
-    return f"/{folder}/{new_filename}"
+    try:
+        result = cloudinary.uploader.upload(
+            file,
+            folder=folder,
+            resource_type="image",
+            overwrite=False,
+        )
+        return result["secure_url"]
+    except Exception as e:
+        raise RuntimeError(f"Image upload failed: {e}") from e
 
 
 def resolve_image(image_url):
@@ -122,6 +127,7 @@ def resolve_image(image_url):
         return url_for("static", filename="images/placeholder.png")
     if image_url.startswith("http"):
         return image_url
+    # Legacy local uploads (files uploaded before Cloudinary migration)
     if image_url.startswith("/uploads/"):
         return url_for("static", filename=image_url.lstrip("/"))
     return url_for("static", filename=f"images/{image_url.lstrip('/')}")
