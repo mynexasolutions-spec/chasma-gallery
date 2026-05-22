@@ -517,13 +517,34 @@ nav.navbar {
 }
 .product-card:hover .card-action-btn { background: var(--primary); color: white; }
 
+/* ── Product card footer (shop + product detail related) ──────── */
+.shop-card-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: auto; padding-top: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.05); gap: 0.5rem;
+}
+.shop-card-price { display: flex; flex-direction: column; min-width: 0; }
+.shop-card-price-main { font-weight: 800; font-size: 1.2rem; color: var(--text-main); white-space: nowrap; }
+.shop-card-price-old  { text-decoration: line-through; color: var(--text-muted); font-size: 0.8rem; white-space: nowrap; }
+.shop-card-btn {
+  flex-shrink: 0; padding: 0.5rem 0.8rem; border-radius: 0.75rem;
+  background: rgba(96,165,250,0.1); color: var(--primary);
+  font-size: 0.8rem; font-weight: 700; white-space: nowrap; text-align: center;
+}
+@media (max-width: 480px) {
+  .shop-card-footer { flex-direction: column; align-items: stretch; gap: 0.6rem; }
+  .shop-card-btn { width: 100%; padding: 0.6rem 0; font-size: 0.85rem; border-radius: 0.6rem; background: var(--primary); color: white; }
+  .shop-card-price-main { font-size: 1.1rem; }
+}
+
 @media (max-width: 768px) {
   .product-track { padding: 1rem 1rem 2rem; gap: 1rem; }
   .product-track .product-card { min-width: 260px; width: 260px; min-height: 400px; padding: 1rem; }
   /* In mobile grid, allow smaller cards */
-  .product-card { min-height: auto; } 
+  .product-card { min-height: auto; }
   .current-price { font-size: 1.2rem; }
   .card-title { font-size: 1.1rem; }
+  .track-arrows { display: none !important; }
 }
 @media (max-width: 480px) {
   .product-track .product-card { min-width: 220px; width: 220px; min-height: 360px; padding: 0.8rem; }

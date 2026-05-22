@@ -390,16 +390,14 @@
         <p style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.3rem; letter-spacing:0.3px;">{{ p.attr_tags }}</p>
         {% endif %}
         <h4 style="font-size:1.1rem; font-weight:700; margin-bottom:0.8rem; line-height:1.2; color:var(--text-main); display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ p.name }}</h4>
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.05);">
-          <div style="display:flex; flex-direction:column;">
-            <span style="font-weight:800; font-size:1.2rem; color:var(--text-main);">₹{{ "%.0f"|format(p.sale_price or p.price) }}</span>
+        <div class="shop-card-footer">
+          <div class="shop-card-price">
+            <span class="shop-card-price-main">₹{{ "%.0f"|format(p.sale_price or p.price) }}</span>
             {% if p.sale_price and p.sale_price < p.price %}
-            <span style="text-decoration:line-through; color:var(--text-muted); font-size:0.8rem;">₹{{ "%.0f"|format(p.price) }}</span>
+            <span class="shop-card-price-old">₹{{ "%.0f"|format(p.price) }}</span>
             {% endif %}
           </div>
-          <div class="glass" style="padding:0.5rem 0.8rem; border-radius:0.75rem; background:rgba(96,165,250,0.1); color:var(--primary); font-size:0.8rem; font-weight:700;">
-            View Details
-          </div>
+          <div class="shop-card-btn glass">View Details</div>
         </div>
       </a>
       {% endfor %}
