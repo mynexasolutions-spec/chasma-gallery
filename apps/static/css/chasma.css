@@ -533,7 +533,21 @@ nav.navbar {
 }
 @media (max-width: 480px) {
   .shop-card-footer { flex-direction: column; align-items: stretch; gap: 0.6rem; }
-  .shop-card-btn { width: 100%; padding: 0.6rem 0; font-size: 0.85rem; border-radius: 0.6rem; background: var(--primary); color: white; }
+  .shop-card-btn {
+    width: 100% !important;
+    padding: 0.6rem 0 !important;
+    font-size: 0.85rem !important;
+    border-radius: 0.6rem !important;
+    background: var(--primary) !important;
+    color: white !important;
+    text-align: center !important;
+    border: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
   .shop-card-price-main { font-size: 1.1rem; }
 }
 
@@ -1040,15 +1054,8 @@ footer.glass { padding: 4rem 2% 2rem; border-top-left-radius: 3rem; border-top-r
 @media (max-width: 768px) {
   .product-detail-grid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: 1rem;
   }
-}
-@media (max-width: 480px) {
-  .product-detail-grid h1 { font-size: 1.65rem !important; }
-  .product-detail-grid #displayPrice { font-size: 1.75rem !important; }
-  #addToCartForm { flex-direction: column; align-items: stretch !important; }
-  #addToCartForm > div { justify-content: center; }
-  #addToCartBtn { text-align: center; padding: 1rem !important; }
 }
 
 /* --- About page grids --- */
