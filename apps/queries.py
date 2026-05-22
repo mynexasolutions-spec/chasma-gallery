@@ -18,7 +18,14 @@ PRODUCTS_SELECT = """
         p.is_featured, p.is_active, p.created_at,
         c.name  AS category_name, c.slug AS category_slug,
         b.name  AS brand_name,    b.slug AS brand_slug,
-        m.file_url AS image_url
+        m.file_url AS image_url,
+        (
+            SELECT STRING_AGG(DISTINCT av.value, ' · ')
+            FROM product_attribute_values pav2
+            JOIN attribute_values av ON av.id = pav2.attribute_value_id
+            JOIN attributes a ON a.id = av.attribute_id
+            WHERE pav2.product_id = p.id AND a.is_featured = TRUE
+        ) AS attr_tags
     FROM products p
     LEFT JOIN categories c ON c.id = p.category_id
     LEFT JOIN brands b      ON b.id = p.brand_id
@@ -54,7 +61,7 @@ PRODUCTS_MINIMAL_SELECT = """
 
 
 @ttl_cache(ttl_seconds=60)
-def get_products(search=None, categories=(), brands=(), shape=None,
+def get_products(search=None, categories=(), brands=(), filter_attrs=(),
                  sort="created_at_desc", page=1, per_page=16,
                  featured=False, limit=None, on_sale=False,
                  # legacy single-value aliases kept for admin callers
@@ -94,16 +101,21 @@ def get_products(search=None, categories=(), brands=(), shape=None,
         conditions.append("p.is_featured = TRUE")
     if on_sale:
         conditions.append("p.sale_price IS NOT NULL AND p.sale_price > 0 AND p.sale_price < p.price")
-    if shape:
-        conditions.append("""
-            (EXISTS (
-                SELECT 1 FROM product_variations pv2
-                JOIN variation_attribute_values vav ON vav.variation_id = pv2.id
-                JOIN attribute_values av ON av.id = vav.attribute_value_id
-                WHERE pv2.product_id = p.id AND av.value ILIKE %s
-            ) OR p.name ILIKE %s OR p.short_description ILIKE %s)
+    for attr_slug, values in (filter_attrs or ()):
+        if not values:
+            continue
+        ph = ",".join(["%s"] * len(values))
+        conditions.append(f"""
+            EXISTS (
+                SELECT 1 FROM product_attribute_values pav
+                JOIN attribute_values av ON av.id = pav.attribute_value_id
+                JOIN attributes a ON a.id = av.attribute_id
+                WHERE pav.product_id = p.id
+                  AND a.slug = %s
+                  AND LOWER(av.value) IN ({ph})
+            )
         """)
-        params += [f"%{shape}%", f"%{shape}%", f"%{shape}%"]
+        params += [attr_slug] + [v.lower() for v in values]
 
     where     = "WHERE " + " AND ".join(conditions)
     order_map = {
@@ -165,6 +177,25 @@ def get_trending_shapes():
         WHERE a.slug = 'frame-shape' AND av.image_url IS NOT NULL
         LIMIT 6
     """)
+
+
+@ttl_cache(ttl_seconds=600)
+def get_filter_attributes():
+    """Returns all attributes marked is_featured=TRUE.
+    Admins control which attributes appear in the Product Details section
+    by toggling is_featured on the Attribute edit page."""
+    attrs = db.query("""
+        SELECT a.id, a.name, a.slug
+        FROM attributes a
+        WHERE a.is_featured = TRUE
+        ORDER BY a.name ASC
+    """)
+    for attr in attrs:
+        attr["options"] = db.query(
+            "SELECT id, value FROM attribute_values WHERE attribute_id = %s ORDER BY value ASC",
+            [attr["id"]],
+        )
+    return attrs
 
 
 @ttl_cache(ttl_seconds=600)

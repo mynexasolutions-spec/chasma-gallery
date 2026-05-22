@@ -42,8 +42,11 @@
   <div style="margin-bottom:2rem;">
     <label style="display:flex; align-items:center; gap:0.6rem; cursor:pointer;">
       <input type="checkbox" name="is_featured" {% if attribute and attribute.is_featured %}checked{% endif %} style="width:18px; height:18px; accent-color:var(--admin-primary);" />
-      <span style="font-weight:600; font-size:0.9rem;">Show on Shop (Featured)</span>
+      <span style="font-weight:600; font-size:0.9rem;">Show in Product Details</span>
     </label>
+    <p style="margin:0.4rem 0 0 1.6rem; font-size:0.78rem; color:var(--admin-text-muted);">
+      When enabled, this attribute appears as a radio selector on every product's edit/create form (e.g. Gender, Frame Shape).
+    </p>
   </div>
 
   <div style="display:flex; gap:1rem; padding-top:1.5rem; border-top:1px solid var(--admin-border);">

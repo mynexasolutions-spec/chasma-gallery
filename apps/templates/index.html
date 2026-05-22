@@ -80,7 +80,7 @@
   <h2 style="text-align:center; font-size:2.5rem; margin-bottom:3.5rem;">Trending Shapes</h2>
   <div class="trending-grid">
     {% for s in trending_shapes %}
-    <a href="{{ url_for('public.shop', shape=s.label) }}" class="trending-shape">
+    <a href="/shop?frame-shape={{ s.label | urlencode }}" class="trending-shape">
       <div class="trending-circle">
         <img src="{{ resolve_image(s.img) }}" alt="{{ s.label }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}';" />
       </div>
@@ -150,24 +150,6 @@
   </div>
 </section>
 
-<!-- PROMO 1: SUNGLASSES -->
-<section class="section-fade" style="padding:0 5% 4rem;">
-  <div class="promo-split-grid" style="max-width:1400px; margin:0 auto; gap:0; background:rgba(255,255,255,0.03); border-radius:1.5rem; overflow:hidden; border:1px solid rgba(255,255,255,0.05); box-shadow:0 10px 40px rgba(0,0,0,0.5);">
-    <div class="promo-grid-left" style="min-height:400px;">
-      <img src="{{ resolve_image('sections/promo_sunglasses.jpg') }}" style="width:100%; height:100%; object-fit:cover;" alt="Sunglasses" loading="lazy" onerror="this.style.background='linear-gradient(135deg,#1e3a5f,#2563eb)'; this.style.minHeight='400px';" />
-      <div class="promo-gradient-side"></div>
-    </div>
-    <div class="promo-content-wrapper">
-      <h2 style="font-size:clamp(2rem,3vw,2.5rem); font-weight:800; margin-bottom:1rem; line-height:1.2; color:white; text-align:center;">Sunglasses with lenses to suit your taste</h2>
-      <a href="{{ url_for('public.shop', category='sunglasses') }}" class="glass-btn-professional" style="align-self:center; background:#d34a1c !important; color:white; padding:1rem 2.5rem; border-radius:50px; font-weight:bold; font-size:1rem; margin-bottom:3rem; box-shadow:0 4px 15px rgba(211,74,28,0.3); display:inline-block;">Try it now</a>
-      <div class="promo-cards-grid">
-        {% for p in promo1 %}
-          {{ product_card(p) }}
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-</section>
 
 <!-- POPULAR FRAMES -->
 <section class="section-padding section-fade" style="padding:2.5rem 0;">
@@ -190,32 +172,6 @@
   </div>
 </section>
 
-<!-- PROMO 2: SPORTS EYEWEAR -->
-<section class="section-fade" style="padding:0 5% 4rem;">
-  <div class="promo-split-grid" style="max-width:1400px; margin:0 auto; gap:0; background:rgba(255,255,255,0.03); border-radius:1.5rem; overflow:hidden; border:1px solid rgba(255,255,255,0.05); box-shadow:0 10px 40px rgba(0,0,0,0.5);">
-    <div class="promo-grid-left" style="background:linear-gradient(to bottom, #aaccff, #7baecc); display:flex; align-items:center; justify-content:center; flex-direction:column; padding:4rem 2rem; min-height:400px; position:relative;">
-      <div style="position:absolute; top:2rem; left:2rem; background:#0a4f8f; color:white; padding:1rem; border-radius:50%; width:90px; height:90px; display:flex; align-items:center; justify-content:center; text-align:center; font-size:0.85rem; font-weight:bold; z-index:4; box-shadow:0 10px 20px rgba(0,0,0,0.3);">Only til<br/>15.03.</div>
-      {% if promo2 %}
-      <img src="{{ resolve_image(promo2[0].image_url) }}" style="width:85%; height:auto; object-fit:contain; z-index:2; filter:drop-shadow(0 20px 20px rgba(0,0,0,0.4));" alt="Sports Eyewear" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholder.png') }}'" />
-      {% endif %}
-      <div style="z-index:3; text-align:center; color:white; margin-top:2.5rem; text-shadow:0 2px 5px rgba(0,0,0,0.3);">
-        <p style="font-size:1.4rem; font-weight:500; margin-bottom:0.2rem; letter-spacing:2px;">End of season</p>
-        <h3 style="font-size:clamp(2.5rem,4vw,3.5rem); font-weight:900; line-height:1.1; margin-bottom:0.5rem;">Up to<br/><span style="font-size:1.2em;">50% OFF</span></h3>
-        <p style="letter-spacing:2px; text-transform:uppercase; font-weight:bold;">on Sports Eyewear</p>
-      </div>
-      <div class="promo-gradient-side"></div>
-    </div>
-    <div class="promo-content-wrapper">
-      <h2 style="font-size:clamp(2rem,3vw,2.5rem); font-weight:800; margin-bottom:2.5rem; line-height:1.2; color:white; text-align:center;">Big discounts at the end of the season</h2>
-      <a href="{{ url_for('public.shop') }}" class="glass-btn-professional" style="align-self:center; background:#d34a1c !important; color:white; padding:1rem 2.5rem; border-radius:50px; font-weight:bold; font-size:1rem; margin-bottom:3rem; box-shadow:0 4px 15px rgba(211,74,28,0.3); display:inline-block;">Discover all sports eyewear</a>
-      <div class="promo-cards-grid">
-        {% for p in promo2 %}
-          {{ product_card(p) }}
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-</section>
 
 <!-- FREE LENS BANNER -->
 <section class="section-fade" style="padding:0 0 4rem 0;">
@@ -233,24 +189,6 @@
   </div>
 </section>
 
-<!-- GALLERY SPOTLIGHT -->
-<section class="section-fade" style="background:var(--bg-main); width:100vw; margin-left:calc(50% - 50vw); padding:4rem 0; overflow:hidden;">
-  <h2 style="text-align:center; margin-bottom:3rem; font-size:2.5rem;">Gallery Spotlight</h2>
-  <div class="video-grid">
-    <div class="glass video-card" style="background:var(--accent-light);">
-      <iframe src="https://www.youtube.com/embed/vrKBtuBgXJc?autoplay=1&mute=1&loop=1&playlist=vrKBtuBgXJc&controls=0&showinfo=0&rel=0&iv_load_policy=3&playsinline=1" allow="autoplay; encrypted-media" style="width:100%; height:100%; position:absolute; top:0; left:0;" title="Gallery 1" loading="lazy"></iframe>
-      <div style="position:absolute; inset:0; z-index:1; pointer-events:auto;"></div>
-    </div>
-    <div class="glass video-card" style="background:var(--accent-light);">
-      <iframe src="https://www.youtube.com/embed/nn7jQhVfPEs?autoplay=1&mute=1&loop=1&playlist=nn7jQhVfPEs&controls=0&showinfo=0&rel=0&iv_load_policy=3&playsinline=1" allow="autoplay; encrypted-media" style="width:100%; height:100%; position:absolute; top:0; left:0;" title="Gallery 2" loading="lazy"></iframe>
-      <div style="position:absolute; inset:0; z-index:1; pointer-events:auto;"></div>
-    </div>
-    <div class="glass video-card" style="background:var(--accent-light);">
-      <iframe src="https://www.youtube.com/embed/vrKBtuBgXJc?autoplay=1&mute=1&loop=1&playlist=vrKBtuBgXJc&controls=0&showinfo=0&rel=0&iv_load_policy=3&playsinline=1" allow="autoplay; encrypted-media" style="width:100%; height:100%; position:absolute; top:0; left:0;" title="Gallery 3" loading="lazy"></iframe>
-      <div style="position:absolute; inset:0; z-index:1; pointer-events:auto;"></div>
-    </div>
-  </div>
-</section>
 
 <!-- REVIEWS -->
 <section class="section-padding section-fade">

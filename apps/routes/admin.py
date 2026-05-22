@@ -7,7 +7,16 @@ from functools import wraps
 from flask import render_template, request, redirect, url_for, flash, abort, session
 import db
 from helpers import slugify, get_cached_store_settings, get_unique_slug, handle_upload
-from queries import get_products, get_categories, get_brands, get_admin_stats, get_featured_categories, get_trending_shapes, PRODUCTS_SELECT
+from queries import get_products, get_categories, get_brands, get_admin_stats, get_featured_categories, get_trending_shapes, get_filter_attributes, PRODUCTS_SELECT
+
+
+def _collect_val_ids(form):
+    """Merge attribute_value_ids checkboxes + filter_attr_* radio buttons into one list."""
+    val_ids = list(form.getlist("attribute_value_ids"))
+    for key, val in form.items():
+        if key.startswith("filter_attr_") and val:
+            val_ids.append(val)
+    return val_ids
 
 
 def _sanitize_sku_prefix(prefix, fallback):
@@ -236,7 +245,7 @@ def register(app):
                         params
                     )
 
-                val_ids = request.form.getlist("attribute_value_ids")
+                val_ids = _collect_val_ids(request.form)
                 if val_ids:
                     values_sql = ",".join(["(%s,%s,%s)"] * len(val_ids))
                     params = []
@@ -259,7 +268,9 @@ def register(app):
             except Exception as e:
                 flash(f"Error creating product: {e}", "error")
 
-        return render_template("admin/product_form.html", product=None, categories=categories, brands=brands, all_attributes=all_attributes, action="new")
+        return render_template("admin/product_form.html", product=None, categories=categories, brands=brands,
+                               all_attributes=all_attributes, filter_attributes=get_filter_attributes(),
+                               product_value_ids=[], action="new")
 
     @app.route("/admin/products/<product_id>/edit", methods=["GET", "POST"])
     @require_admin
@@ -322,7 +333,7 @@ def register(app):
                     db.execute("INSERT INTO product_attributes (id, product_id, attribute_id) VALUES (%s,%s,%s)", [str(uuid.uuid4()), product_id, aid])
                 
                 db.execute("DELETE FROM product_attribute_values WHERE product_id=%s", [product_id])
-                for vid in request.form.getlist("attribute_value_ids"):
+                for vid in _collect_val_ids(request.form):
                     db.execute("INSERT INTO product_attribute_values (id, product_id, attribute_value_id) VALUES (%s,%s,%s)", [str(uuid.uuid4()), product_id, vid])
 
                 get_products.cache_clear()
@@ -346,6 +357,7 @@ def register(app):
             "admin/product_form.html",
             product=product, product_images=product_images,
             categories=categories, brands=brands, all_attributes=all_attributes,
+            filter_attributes=get_filter_attributes(),
             product_attribute_ids=product_attribute_ids, product_value_ids=product_value_ids,
             action="edit"
         )
@@ -630,6 +642,7 @@ def register(app):
                         "INSERT INTO attributes (id, name, slug, image_url, is_featured) VALUES (%s,%s,%s,%s,%s)",
                         [str(uuid.uuid4()), name, slug, image_url, is_featured]
                     )
+                    get_filter_attributes.cache_clear()
                     flash("Attribute created", "success")
                     return redirect(url_for("admin_attributes"))
                 except Exception as e:
@@ -651,6 +664,7 @@ def register(app):
                      image_url,
                      request.form.get("is_featured") == "on", attr_id]
                 )
+                get_filter_attributes.cache_clear()
                 flash("Attribute updated", "success")
                 return redirect(url_for("admin_attributes"))
             except Exception as e:

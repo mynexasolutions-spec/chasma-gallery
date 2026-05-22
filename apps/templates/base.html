@@ -113,7 +113,22 @@
   <!-- Nav links: desktop only (centered absolutely) -->
   <div class="nav-links" id="navLinks" style="display:none; position:absolute; left:50%; transform:translateX(-50%); gap:2.5rem; align-items:center;">
     <a href="{{ url_for('public.index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Home</a>
-    <a href="{{ url_for('public.shop') }}" class="nav-link {% if request.endpoint == 'shop' %}active{% endif %}">Shop</a>
+
+    <!-- Shop dropdown -->
+    <div class="nav-dropdown-wrap">
+      <a href="{{ url_for('public.shop') }}" class="nav-link {% if request.endpoint == 'shop' %}active{% endif %}" style="display:inline-flex; align-items:center; gap:0.3rem;">
+        Shop
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </a>
+      <div class="nav-dropdown">
+        <a href="{{ url_for('public.shop') }}" class="nav-dropdown-item">All Products</a>
+        <div class="nav-dropdown-divider"></div>
+        {% for cat in nav_categories %}
+        <a href="{{ url_for('public.shop', category=cat.slug) }}" class="nav-dropdown-item">{{ cat.name }}</a>
+        {% endfor %}
+      </div>
+    </div>
+
     <a href="{{ url_for('public.about') }}" class="nav-link {% if request.endpoint == 'about' %}active{% endif %}">About Us</a>
     <a href="{{ url_for('public.contact') }}" class="nav-link {% if request.endpoint == 'contact' %}active{% endif %}">Contact Us</a>
   </div>
@@ -144,10 +159,28 @@
 <!-- Mobile Menu (hamburger opened) -->
 <div class="glass mobile-menu" id="mobileMenu">
   <a href="{{ url_for('public.index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Home</a>
-  <a href="{{ url_for('public.shop') }}" class="nav-link {% if request.endpoint == 'shop' %}active{% endif %}">Shop</a>
+
+  <!-- Shop with expandable categories -->
+  <div>
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <a href="{{ url_for('public.shop') }}" class="nav-link {% if request.endpoint == 'shop' %}active{% endif %}" style="flex:1;">Shop</a>
+      <button type="button" id="mobileShopToggle" onclick="toggleMobileShop()"
+              style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:0.5rem; display:flex; align-items:center;">
+        <svg id="mobileShopChevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+    </div>
+    <div id="mobileShopCats" style="display:none; padding-left:1rem; border-left:2px solid rgba(255,255,255,0.1); margin:0.4rem 0 0.4rem 0.5rem;">
+      {% for cat in nav_categories %}
+      <a href="{{ url_for('public.shop', category=cat.slug) }}"
+         style="display:block; padding:0.4rem 0; color:var(--text-muted); font-size:0.9rem; text-decoration:none; transition:color 0.2s;"
+         onmouseover="this.style.color='var(--text-main)'" onmouseout="this.style.color='var(--text-muted)'">{{ cat.name }}</a>
+      {% endfor %}
+    </div>
+  </div>
+
   <a href="{{ url_for('public.about') }}" class="nav-link {% if request.endpoint == 'about' %}active{% endif %}">About Us</a>
   <a href="{{ url_for('public.contact') }}" class="nav-link {% if request.endpoint == 'contact' %}active{% endif %}">Contact Us</a>
-  
+
   {% if current_user and current_user.role in ('admin','manager') %}
   <div style="width:100%; border-top:1px solid rgba(255,255,255,0.1); padding-top:1rem;">
     <a href="{{ url_for('admin_dashboard') }}" style="color:var(--primary); font-weight:700; font-size:0.95rem; text-align:center; display:block;">Admin Dashboard</a>
@@ -227,6 +260,15 @@
   if (mobileBtn) mobileBtn.addEventListener('click', toggleMenu);
   if (desktopToggle) desktopToggle.addEventListener('click', toggleMenu);
   mobileMenu.querySelectorAll('.nav-link').forEach(a => a.addEventListener('click', () => mobileMenu.classList.remove('open')));
+
+  // Mobile shop category toggle
+  function toggleMobileShop() {
+    const cats    = document.getElementById('mobileShopCats');
+    const chevron = document.getElementById('mobileShopChevron');
+    const open = cats.style.display === 'none';
+    cats.style.display = open ? 'block' : 'none';
+    chevron.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+  }
 
   // Scroll fade
   const observer = new IntersectionObserver((entries) => {

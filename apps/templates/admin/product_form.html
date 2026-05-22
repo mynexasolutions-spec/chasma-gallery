@@ -179,7 +179,8 @@
           <select name="category_id" class="admin-input" style="background:#fff;">
             <option value="">No Category</option>
             {% for c in categories %}
-            <option value="{{ c.id }}" {% if product and product.category_id==c.id %}selected{% endif %}>{{ c.name }}
+            <option value="{{ c.id }}" {% if product and product.category_id==c.id %}selected{% endif %}>
+              {%- if c.parent_name %}{{ c.parent_name }} &rsaquo; {% endif %}{{ c.name }}
             </option>
             {% endfor %}
           </select>
@@ -195,6 +196,38 @@
             {% endfor %}
           </select>
         </div>
+      </div>
+
+      <!-- Product Details (Gender & Frame Shape) — always visible -->
+      <div class="admin-card" style="padding:1.5rem;">
+        <h3 style="font-size:1rem; font-weight:700; margin-bottom:1.25rem;">Product Details</h3>
+        {% for attr in filter_attributes %}
+        <div style="margin-bottom:1.25rem;">
+          <label class="admin-label" style="margin-bottom:0.6rem; display:block;">{{ attr.name }}</label>
+          <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+            {% for val in attr.options %}
+            <label style="display:flex; align-items:center; gap:0.4rem; background:#f9fafb;
+                          padding:0.45rem 0.85rem; border-radius:0.5rem;
+                          border:1px solid var(--admin-border); cursor:pointer;
+                          font-size:0.875rem; font-weight:500;">
+              <input type="radio" name="filter_attr_{{ attr.id }}" value="{{ val.id }}"
+                     {% if val.id in (product_value_ids or []) %}checked{% endif %}
+                     style="accent-color:var(--admin-primary);" />
+              {{ val.value }}
+            </label>
+            {% endfor %}
+            <label style="display:flex; align-items:center; gap:0.4rem; background:#f9fafb;
+                          padding:0.45rem 0.85rem; border-radius:0.5rem;
+                          border:1px dashed var(--admin-border); cursor:pointer;
+                          font-size:0.875rem; color:#9ca3af;">
+              <input type="radio" name="filter_attr_{{ attr.id }}" value=""
+                     {% if not (attr.options | selectattr('id', 'in', (product_value_ids or [])) | list) %}checked{% endif %}
+                     style="accent-color:var(--admin-primary);" />
+              None
+            </label>
+          </div>
+        </div>
+        {% endfor %}
       </div>
 
       <!-- Product Type -->

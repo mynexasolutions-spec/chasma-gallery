@@ -4,6 +4,7 @@ from queries import (
     get_products, get_categories, get_brands,
     get_product_detail, get_related_products,
     get_homepage_products, get_trending_shapes, get_featured_categories,
+    get_filter_attributes,
 )
 
 bp = Blueprint("public", __name__)
@@ -34,19 +35,31 @@ def shop():
     selected_cats   = tuple(s for s in request.args.getlist("category") if s)
     selected_brands = tuple(s for s in request.args.getlist("brand")    if s)
     sort            = request.args.get("sort", "created_at_desc")
-    shape           = request.args.get("shape", "").strip()
     page            = max(1, int(request.args.get("page", 1)))
     on_sale         = bool(request.args.get("on_sale", ""))
     try:
+        filter_attributes = get_filter_attributes()
+        # Collect multi-select values for each filter attribute from the URL
+        current_filter_attrs = {}
+        for attr in filter_attributes:
+            vals = [v for v in request.args.getlist(attr["slug"]) if v]
+            if vals:
+                current_filter_attrs[attr["slug"]] = vals
+        # Convert to hashable tuple for get_products cache key
+        filter_attrs = tuple(
+            sorted((slug, tuple(sorted(vals))) for slug, vals in current_filter_attrs.items())
+        )
         products, total, total_pages = get_products(
             search=search, categories=selected_cats, brands=selected_brands,
-            shape=shape, sort=sort, page=page, per_page=16, on_sale=on_sale,
+            filter_attrs=filter_attrs, sort=sort, page=page, per_page=16, on_sale=on_sale,
         )
         all_categories = get_categories()
         all_brands     = get_brands()
     except Exception as e:
         products, total, total_pages = [], 0, 1
         all_categories = all_brands = []
+        filter_attributes = []
+        current_filter_attrs = {}
         flash(f"Database error: {e}", "error")
 
     # Build parent → children tree for the sidebar accordion
@@ -63,10 +76,12 @@ def shop():
         current_page=page,
         categories=all_categories, brands=all_brands,
         parent_cats=parent_cats, children_map=children_map,
+        filter_attributes=filter_attributes,
+        current_filter_attrs=current_filter_attrs,
         search=search,
         current_categories=selected_cats,
         current_brands=selected_brands,
-        current_sort=sort, current_shape=shape,
+        current_sort=sort,
         on_sale=on_sale,
     )
 

@@ -48,7 +48,12 @@ def create_app():
     def inject_globals():
         cart  = session.get("cart", {})
         count = sum(item.get("qty", 0) for item in cart.values())
-        return {"cart_count": count, "current_user": session.get("user")}
+        try:
+            from queries import get_categories
+            nav_cats = [c for c in get_categories() if not c.get("parent_id")]
+        except Exception:
+            nav_cats = []
+        return {"cart_count": count, "current_user": session.get("user"), "nav_categories": nav_cats}
 
     # Blueprints
     from routes.public   import bp as public_bp

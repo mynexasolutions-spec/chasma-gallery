@@ -44,5 +44,8 @@ Thumbs.db
 tmp/
 temp/
 
+# SQL backup dumps
+backup_*.sql
+
 # Uploads (stored in Cloudinary, local copies not needed in git)
 apps/static/uploads/

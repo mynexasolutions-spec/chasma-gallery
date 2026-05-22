@@ -102,10 +102,11 @@
 {% block content %}
 
 <!-- Top category icon nav -->
-<div style="padding: 2.5rem 2% 0; max-width:1400px; margin:0 auto;">
+<div style="padding: 2rem 2% 0; max-width:1400px; margin:0 auto;">
   <div class="shop-category-nav section-fade visible">
     {% for cat in parent_cats %}
     <button type="button"
+            data-slug="{{ cat.slug }}"
             onclick="topNavToggle('{{ cat.slug }}')"
             class="shop-cat-item {% if cat.slug in current_categories %}active{% endif %}"
             style="background:none; border:none; cursor:pointer;">
@@ -116,6 +117,10 @@
       <span class="shop-cat-label">{{ cat.name }}</span>
     </button>
     {% endfor %}
+  </div>
+  <!-- Filter attribute chips — mobile only (desktop has sidebar) -->
+  <div id="subcatRow" class="subcat-row" style="display:none;">
+    <div id="subcatInner"></div>
   </div>
 </div>
 
@@ -133,9 +138,8 @@
 
       <form method="get" action="{{ url_for('public.shop') }}" id="filterForm">
         <!-- Hidden fields preserved across submissions -->
-        <input type="hidden" name="page"  id="pageInput"  value="1" />
-        <input type="hidden" name="sort"  id="sortInput"  value="{{ current_sort }}" />
-        <input type="hidden" name="shape" id="shapeInput" value="{{ current_shape }}" />
+        <input type="hidden" name="page" id="pageInput" value="1" />
+        <input type="hidden" name="sort" id="sortInput" value="{{ current_sort }}" />
 
         <!-- ── Search ─────────────────────────────────────── -->
         <div style="margin-bottom:1.1rem;">
@@ -180,8 +184,9 @@
           {% set p_id   = parent.id | string %}
           {% set p_slug = parent.slug %}
           {% set p_checked = p_slug in current_categories %}
-          {% set children  = children_map.get(p_id, []) %}
-          {% set any_child_checked = children | selectattr('slug', 'in', current_categories) | list | length > 0 %}
+          {% set all_children = children_map.get(p_id, []) %}
+          {% set children = all_children | selectattr('product_count', 'gt', 0) | list %}
+          {% set any_child_checked = all_children | selectattr('slug', 'in', current_categories) | list | length > 0 %}
 
           <div class="cat-group">
             <div class="cat-parent-row">
@@ -228,6 +233,30 @@
 
         <hr class="sidebar-divider" />
 
+        <!-- ── Filter Attributes (dynamic, multi-select) ── -->
+        {% for attr in filter_attributes %}
+        {% set sel = current_filter_attrs.get(attr.slug, []) %}
+        <div style="margin-bottom:1.1rem;">
+          <div class="sidebar-section-label">
+            {{ attr.name }}
+            {% if sel %}
+            <span style="background:var(--primary); color:white; border-radius:999px;
+                         padding:0.05rem 0.5rem; font-size:0.7rem;">{{ sel | length }}</span>
+            {% endif %}
+          </div>
+          {% for val in attr.options %}
+          <label class="cb-item">
+            <input type="checkbox" name="{{ attr.slug }}" value="{{ val.value }}"
+                   {% if val.value in sel %}checked{% endif %}
+                   onchange="applyFilters();" />
+            <span class="cb-box"></span>
+            <span class="cb-label">{{ val.value }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <hr class="sidebar-divider" />
+        {% endfor %}
+
         <!-- ── Brands ─────────────────────────────────────── -->
         <div style="margin-bottom:0.5rem;">
           <div class="sidebar-section-label">
@@ -268,8 +297,8 @@
         <!-- ── Actions ────────────────────────────────────── -->
         <div class="sidebar-actions">
           <button type="button" class="btn-apply" onclick="applyFilters()">Apply Filters</button>
-          {% if search or current_categories or current_brands or current_shape or on_sale %}
-          <a href="{{ url_for('public.shop') }}" class="btn-clear">✕ Clear</a>
+          {% if has_filters %}
+          <a href="{{ url_for('public.shop') }}" class="btn-clear">&#10005; Clear</a>
           {% endif %}
         </div>
 
@@ -287,8 +316,8 @@
           {% for c in categories %}{% if c.slug == current_categories[0] %}{{ c.name }}{% endif %}{% endfor %}
         {% elif current_categories|length > 1 %}
           Selected Categories
-        {% elif current_shape %}
-          {{ current_shape }} Frames
+        {% elif current_filter_attrs %}
+          Filtered Collection
         {% else %}
           Our Collection
         {% endif %}
@@ -299,7 +328,7 @@
     </div>
 
     <!-- Active filter chips -->
-    {% set has_filters = search or current_categories or current_brands or current_shape or on_sale %}
+    {% set has_filters = search or current_categories or current_brands or on_sale or current_filter_attrs %}
     {% if has_filters %}
     <div class="filter-chips">
       {% if search %}
@@ -324,12 +353,14 @@
         <button onclick="removeFilter('brand', '{{ slug }}')" title="Remove">×</button>
       </span>
       {% endfor %}
-      {% if current_shape %}
-      <span class="filter-chip">
-        Shape: {{ current_shape }}
-        <button onclick="removeFilter('shape', '')" title="Remove">×</button>
-      </span>
-      {% endif %}
+      {% for attr in filter_attributes %}
+        {% for val in current_filter_attrs.get(attr.slug, []) %}
+        <span class="filter-chip">
+          {{ attr.name }}: {{ val }}
+          <button onclick="removeAttrFilter('{{ attr.slug }}', '{{ val }}')" title="Remove">×</button>
+        </span>
+        {% endfor %}
+      {% endfor %}
       {% if on_sale %}
       <span class="filter-chip" style="background:rgba(34,197,94,0.12); border-color:rgba(34,197,94,0.3); color:#22c55e;">
         🏷️ On Sale
@@ -354,7 +385,10 @@
           <span style="position:absolute; top:1rem; right:1rem; background:#22c55e; color:white; font-size:0.7rem; font-weight:800; padding:0.3rem 0.6rem; border-radius:6px; letter-spacing:0.5px;">SALE</span>
           {% endif %}
         </div>
-        <p style="color:var(--primary); font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.4rem;">{{ p.brand_name or p.category_name or 'Glasses' }}</p>
+        <p style="color:var(--primary); font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.25rem;">{{ p.brand_name or p.category_name or 'Glasses' }}</p>
+        {% if p.attr_tags %}
+        <p style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.3rem; letter-spacing:0.3px;">{{ p.attr_tags }}</p>
+        {% endif %}
         <h4 style="font-size:1.1rem; font-weight:700; margin-bottom:0.8rem; line-height:1.2; color:var(--text-main); display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">{{ p.name }}</h4>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:1rem; border-top:1px solid rgba(255,255,255,0.05);">
           <div style="display:flex; flex-direction:column;">
@@ -440,38 +474,95 @@ function gotoPage(n) {
   document.getElementById('filterForm').submit();
 }
 
-// ── Top-nav category toggle ────────────────────────────────────
-function topNavToggle(slug) {
-  const cb = document.querySelector(`input[name="category"][value="${slug}"]`);
+// ── Filter attribute data from template ───────────────────────
+const filterAttributesData = [
+  {% for attr in filter_attributes %}
+  { slug: {{ attr.slug | tojson }}, name: {{ attr.name | tojson }},
+    options: [{% for val in attr.options %}{ value: {{ val.value | tojson }} },{% endfor %}] },
+  {% endfor %}
+];
+const currentCatsSet      = new Set({{ current_categories | tojson }});
+const currentSelectedAttrs = {{ current_filter_attrs | tojson }};
+
+// Build and show the filter-attribute quick-chip row
+function showAttrChipRow() {
+  if (filterAttributesData.length === 0) return;
+  const row   = document.getElementById('subcatRow');
+  const inner = document.getElementById('subcatInner');
+  let html = '';
+  filterAttributesData.forEach(attr => {
+    const sel = (currentSelectedAttrs[attr.slug] || []).map(v => v.toLowerCase());
+    // Use data-* attributes to avoid quoting issues inside onclick
+    let chips = attr.options.map(opt => {
+      const active = sel.includes(opt.value.toLowerCase());
+      const safeVal = opt.value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+      return `<button type="button" class="subcat-chip${active ? ' active' : ''}"
+              data-slug="${attr.slug}" data-value="${safeVal}"
+              onclick="toggleAttrChip(this)">${opt.value}</button>`;
+    }).join('');
+    html += `<div class="attr-chip-row"><span class="subcat-group-label">${attr.name}:</span>${chips}</div>`;
+  });
+  inner.innerHTML = html;
+  row.style.display = 'block';
+}
+
+let chipTimer = null;
+
+function toggleAttrChip(chipEl) {
+  const slug  = chipEl.dataset.slug;
+  const value = chipEl.dataset.value;
+  // Sync with the sidebar checkbox so both stay in step
+  const cb = document.querySelector(`input[name="${slug}"][value="${value}"]`);
   if (cb) {
     cb.checked = !cb.checked;
-    // Expand that group's children if now checked
-    const group = cb.closest('.cat-group');
-    if (group) {
-      const children = group.querySelector('.cat-children');
-      const chevron  = group.querySelector('.cat-chevron');
-      if (children && cb.checked) { children.classList.add('open'); }
-      if (chevron  && cb.checked) { chevron.classList.add('open');  }
-    }
-    applyFilters();
+    chipEl.classList.toggle('active', cb.checked);
+  } else {
+    chipEl.classList.toggle('active');
   }
+  // Short debounce so tapping multiple chips submits only once
+  clearTimeout(chipTimer);
+  chipTimer = setTimeout(applyFilters, 450);
 }
+
+// ── Top-nav category toggle (URL-based, same path as chips) ───
+function topNavToggle(slug) {
+  const url = new URL(window.location.href);
+  const existing = url.searchParams.getAll('category');
+  url.searchParams.delete('category');
+  if (existing.includes(slug)) {
+    // Deselect — remove this category
+    existing.filter(c => c !== slug).forEach(c => url.searchParams.append('category', c));
+  } else {
+    // Select — add this category
+    existing.forEach(c => url.searchParams.append('category', c));
+    url.searchParams.append('category', slug);
+  }
+  url.searchParams.set('page', '1');
+  window.location.href = url.toString();
+}
+
+// Auto-show attr chips if a category is already selected on load
+if (currentCatsSet.size > 0) { showAttrChipRow(); }
 
 // ── Remove a single filter chip ────────────────────────────────
 function removeFilter(name, value) {
   const form = document.getElementById('filterForm');
   if (name === 'search') {
     document.getElementById('searchInput').value = '';
-  } else if (name === 'shape') {
-    document.getElementById('shapeInput').value = '';
   } else if (name === 'on_sale') {
     const cb = form.querySelector('input[name="on_sale"]');
     if (cb) cb.checked = false;
   } else {
-    // uncheck the matching checkbox
     const cb = form.querySelector(`input[name="${name}"][value="${value}"]`);
     if (cb) cb.checked = false;
   }
+  applyFilters();
+}
+
+// ── Remove a filter attribute chip (generic) ───────────────────
+function removeAttrFilter(slug, value) {
+  const cb = document.querySelector(`input[name="${slug}"][value="${value}"]`);
+  if (cb) cb.checked = false;
   applyFilters();
 }
 </script>
