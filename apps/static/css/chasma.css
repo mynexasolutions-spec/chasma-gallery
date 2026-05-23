@@ -893,11 +893,15 @@ footer.glass { padding: 4rem 2% 2rem; border-top-left-radius: 3rem; border-top-r
 
 /* ── Chevron SVG (expandable parent chips only) ── */
 .drill-chevron {
-  width: 8px; height: 8px;
+  width: 9px !important; height: 9px !important;
+  min-width: 9px; min-height: 9px;
+  max-width: 9px !important; max-height: 9px !important;
   flex-shrink: 0;
   opacity: 0.45;
   transition: transform 0.2s, opacity 0.15s;
   stroke: currentColor;
+  display: inline-block;
+  vertical-align: middle;
 }
 .subcat-chip.active .drill-chevron { transform: rotate(90deg); opacity: 0.85; }
 
