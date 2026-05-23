@@ -18,11 +18,13 @@
 /* ===== RESET ===== */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 h1, h2, h3, h4, h5, h6 { font-family: var(--font-heading); }
+html { overflow-x: hidden; max-width: 100%; }
 body {
   font-family: var(--font-main);
   background-color: var(--bg-main);
   color: var(--text-main);
   overflow-x: hidden;
+  max-width: 100%;
   line-height: 1.5;
 }
 a { text-decoration: none; color: inherit; transition: all 0.3s ease; }
@@ -1100,6 +1102,10 @@ footer.glass { padding: 4rem 2% 2rem; border-top-left-radius: 3rem; border-top-r
   .product-detail-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
+  }
+  .product-detail-grid > * {
+    min-width: 0;
+    overflow-x: hidden;
   }
 }
 
