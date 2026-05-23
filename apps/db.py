@@ -245,6 +245,12 @@ _MIGRATIONS = [
         email VARCHAR(255) UNIQUE NOT NULL,
         subscribed_at TIMESTAMP DEFAULT NOW()
     )""",
+    """INSERT INTO attribute_values (id, attribute_id, value)
+       SELECT gen_random_uuid(), '1f072049-fc89-4d83-a195-cb2aba8f21fe', 'Kids'
+       WHERE NOT EXISTS (
+           SELECT 1 FROM attribute_values
+           WHERE attribute_id = '1f072049-fc89-4d83-a195-cb2aba8f21fe' AND value = 'Kids'
+       )""",
 ]
 
 

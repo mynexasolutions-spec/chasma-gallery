@@ -99,10 +99,29 @@ def product_detail(product_id):
         related = get_related_products(product.get("category_slug", ""), product_id)
     except Exception:
         related = []
+
+    # Check if this product belongs to the Contacts hierarchy (any depth)
+    is_contacts = False
+    try:
+        cat_id = product.get("category_id") or product.get("category_slug")
+        if cat_id:
+            all_cats = get_categories()
+            cat_map  = {str(c["id"]): c for c in all_cats}
+            # Walk up the ancestry chain; if any ancestor slug == 'contacts' → True
+            curr = db.query_one("SELECT id, parent_id, slug FROM categories WHERE id = (SELECT category_id FROM products WHERE id = %s)", [product_id])
+            while curr:
+                if curr["slug"] == "contacts":
+                    is_contacts = True
+                    break
+                curr = cat_map.get(str(curr["parent_id"])) if curr["parent_id"] else None
+    except Exception:
+        pass
+
     return render_template(
         "product.html",
         product=product, images=images, variations=variations,
         reviews=reviews, attributes=attributes, related=related,
+        is_contacts=is_contacts,
     )
 
 

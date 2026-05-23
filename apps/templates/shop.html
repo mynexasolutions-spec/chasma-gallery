@@ -54,6 +54,8 @@
   display: none; padding-left: 1.4rem; margin-top: 0.15rem;
 }
 .cat-children.open { display: block; }
+.cat-subgroup { margin-bottom: 0.1rem; }
+.cat-grandchildren { padding-left: 1.2rem; }
 
 /* ── Filter chips ───────────────────────────────────────────── */
 .filter-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
@@ -118,8 +120,8 @@
     </button>
     {% endfor %}
   </div>
-  <!-- Filter attribute chips — mobile only (desktop has sidebar) -->
-  <div id="subcatRow" class="subcat-row" style="display:none;">
+  <!-- Subcategory drill chips — mobile only -->
+  <div id="subcatRow" class="subcat-row" style="display:none; margin-top:0.6rem; padding:0.5rem 3% 0.4rem; background:rgba(255,255,255,0.03); border-radius:0.75rem; border:1px solid rgba(255,255,255,0.06);">
     <div id="subcatInner"></div>
   </div>
 </div>
@@ -185,7 +187,15 @@
           {% set p_slug = parent.slug %}
           {% set p_checked = p_slug in current_categories %}
           {% set all_children = children_map.get(p_id, []) %}
-          {% set children = all_children | selectattr('product_count', 'gt', 0) | list %}
+          {# Show a child if it has products OR has its own children (branch node) #}
+          {% set children = [] %}
+          {% for ch in all_children %}
+            {% set ch_grandkids = children_map.get(ch.id | string, []) %}
+            {% if ch.product_count > 0 or ch_grandkids | length > 0 %}
+              {% set _ = children.append(ch) %}
+            {% endif %}
+          {% endfor %}
+          {# Check if any child/grandchild slug is in current selection #}
           {% set any_child_checked = all_children | selectattr('slug', 'in', current_categories) | list | length > 0 %}
 
           <div class="cat-group">
@@ -216,14 +226,60 @@
             {% if children %}
             <div class="cat-children {% if p_checked or any_child_checked %}open{% endif %}">
               {% for child in children %}
+              {% set ch_id = child.id | string %}
+              {% set grandkids = children_map.get(ch_id, []) %}
+              {% set ch_checked = child.slug in current_categories %}
+              {% set any_gc_checked = grandkids | selectattr('slug', 'in', current_categories) | list | length > 0 %}
+
+              {% if grandkids %}
+              {# Branch child — show with its own expand chevron #}
+              <div class="cat-subgroup">
+                <div class="cat-parent-row" style="padding-left:0;">
+                  <label class="cb-item" style="flex:1;">
+                    <input type="checkbox" name="category" value="{{ child.slug }}"
+                           {% if ch_checked %}checked{% endif %}
+                           onchange="applyFilters();" />
+                    <span class="cb-box"></span>
+                    <span class="cb-label">{{ child.name }}</span>
+                    <span class="cb-count">{{ child.product_count }}</span>
+                  </label>
+                  <button type="button"
+                          class="cat-chevron {% if ch_checked or any_gc_checked %}open{% endif %}"
+                          onclick="toggleCatGroup(this)"
+                          aria-label="Expand {{ child.name }}">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5"
+                         stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="cat-children cat-grandchildren {% if ch_checked or any_gc_checked %}open{% endif %}">
+                  {% for gc in grandkids %}
+                  <label class="cb-item">
+                    <input type="checkbox" name="category" value="{{ gc.slug }}"
+                           {% if gc.slug in current_categories %}checked{% endif %}
+                           onchange="applyFilters();" />
+                    <span class="cb-box"></span>
+                    <span class="cb-label">{{ gc.name }}</span>
+                    <span class="cb-count">{{ gc.product_count }}</span>
+                  </label>
+                  {% endfor %}
+                </div>
+              </div>
+
+              {% else %}
+              {# Leaf child — plain row #}
               <label class="cb-item">
                 <input type="checkbox" name="category" value="{{ child.slug }}"
-                       {% if child.slug in current_categories %}checked{% endif %}
+                       {% if ch_checked %}checked{% endif %}
                        onchange="applyFilters();" />
                 <span class="cb-box"></span>
                 <span class="cb-label">{{ child.name }}</span>
                 <span class="cb-count">{{ child.product_count }}</span>
               </label>
+              {% endif %}
+
               {% endfor %}
             </div>
             {% endif %}
@@ -451,7 +507,10 @@ function toggleShopFilter() {
 
 // ── Category accordion ─────────────────────────────────────────
 function toggleCatGroup(btn) {
-  const children = btn.closest('.cat-group').querySelector('.cat-children');
+  // Find the nearest .cat-children that is a sibling of this button's parent row
+  const row = btn.closest('.cat-parent-row');
+  const group = row.parentElement;
+  const children = group.querySelector(':scope > .cat-children');
   if (!children) return;
   const isOpen = children.classList.toggle('open');
   btn.classList.toggle('open', isOpen);
@@ -472,66 +531,189 @@ function gotoPage(n) {
   document.getElementById('filterForm').submit();
 }
 
-// ── Filter attribute data from template ───────────────────────
-const filterAttributesData = [
-  {% for attr in filter_attributes %}
-  { slug: {{ attr.slug | tojson }}, name: {{ attr.name | tojson }},
-    options: [{% for val in attr.options %}{ value: {{ val.value | tojson }} },{% endfor %}] },
-  {% endfor %}
-];
+// ── Mobile subcategory drill-down ────────────────────────────────
+// Full category tree (3 levels deep, auto-built from server data)
+const mobileCatTree = {};
+{% for root in parent_cats %}
+{% set root_id = root.id | string %}
+mobileCatTree[{{ root.slug | tojson }}] = {
+  id: {{ root.id | tojson }},
+  name: {{ root.name | tojson }},
+  children: [
+    {% for ch in children_map.get(root_id, []) %}
+    {
+      id: {{ ch.id | tojson }},
+      slug: {{ ch.slug | tojson }},
+      name: {{ ch.name | tojson }},
+      product_count: {{ ch.product_count }},
+      children: [
+        {% for gc in children_map.get(ch.id | string, []) %}
+        { id: {{ gc.id | tojson }}, slug: {{ gc.slug | tojson }}, name: {{ gc.name | tojson }}, product_count: {{ gc.product_count }}, children: [] },
+        {% endfor %}
+      ]
+    },
+    {% endfor %}
+  ]
+};
+{% endfor %}
+
+// ── State ─────────────────────────────────────────────────────────
 const currentCatsSet      = new Set({{ current_categories | tojson }});
 const currentSelectedAttrs = {{ current_filter_attrs | tojson }};
+const expandedLevel1       = new Set();
 
-// Build and show the filter-attribute quick-chip row
-function showAttrChipRow() {
-  if (filterAttributesData.length === 0) return;
+// Filter attributes (Frame Shape, Gender etc.) — for non-subcategory roots
+const filterAttributesData = [
+  {% for attr in filter_attributes %}
+  {
+    slug: {{ attr.slug | tojson }},
+    name: {{ attr.name | tojson }},
+    options: [{% for val in attr.options %}{ value: {{ val.value | tojson }} },{% endfor %}]
+  },
+  {% endfor %}
+];
+
+// Pre-expand any level-1 that is already active or has an active grandchild
+for (const rootSlug in mobileCatTree) {
+  for (const ch of mobileCatTree[rootSlug].children) {
+    if (currentCatsSet.has(ch.slug) || ch.children.some(gc => currentCatsSet.has(gc.slug))) {
+      expandedLevel1.add(ch.slug);
+    }
+  }
+}
+
+// ── Shared helpers ────────────────────────────────────────────────
+const chevronSVG = `<svg class="drill-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`;
+
+let chipTimer = null;
+function scheduleApply() {
+  clearTimeout(chipTimer);
+  chipTimer = setTimeout(applyFilters, 400);
+}
+
+// ── Main render: unified chip strip ──────────────────────────────
+function renderMobileChips() {
   const row   = document.getElementById('subcatRow');
   const inner = document.getElementById('subcatInner');
+  if (!row || !inner) return;
+
+  // Classify active roots
+  const activeRoots = Object.keys(mobileCatTree).filter(slug =>
+    currentCatsSet.has(slug) ||
+    mobileCatTree[slug].children.some(ch =>
+      currentCatsSet.has(ch.slug) || ch.children.some(gc => currentCatsSet.has(gc.slug))
+    )
+  );
+
+  if (activeRoots.length === 0) { row.style.display = 'none'; return; }
+
+  // Roots with subcategories → drill chips
+  const drillRoots  = activeRoots.filter(s => mobileCatTree[s].children.length > 0);
+  // Roots without subcategories → attribute filter chips
+  const attrRoots   = activeRoots.filter(s => mobileCatTree[s].children.length === 0);
+  const showLabels  = (drillRoots.length > 0 && attrRoots.length > 0);
+
   let html = '';
-  filterAttributesData.forEach(attr => {
-    const sel = (currentSelectedAttrs[attr.slug] || []).map(v => v.toLowerCase());
-    // Use data-* attributes to avoid quoting issues inside onclick
-    let chips = attr.options.map(opt => {
-      const active = sel.includes(opt.value.toLowerCase());
-      const safeVal = opt.value.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
-      return `<button type="button" class="subcat-chip${active ? ' active' : ''}"
-              data-slug="${attr.slug}" data-value="${safeVal}"
-              onclick="toggleAttrChip(this)">${opt.value}</button>`;
+
+  // ── Section 1: subcategory drill (e.g. Contacts) ──────────────
+  drillRoots.forEach(rootSlug => {
+    const root = mobileCatTree[rootSlug];
+    const visibleChildren = root.children.filter(ch => ch.children.length > 0 || ch.product_count > 0);
+    if (visibleChildren.length === 0) return;
+
+    // Level-1 row — always labelled with root name
+    const level1Html = visibleChildren.map(ch => {
+      const active  = currentCatsSet.has(ch.slug);
+      const hasKids = ch.children.length > 0;
+      const badge   = !hasKids ? `<span class="subcat-chip-count">${ch.product_count}</span>` : '';
+      return `<button type="button"
+                class="subcat-chip${active ? ' active' : ''}"
+                onclick="drillChipClick(this,'${ch.slug}',${hasKids})">
+                ${ch.name}${badge}${hasKids ? chevronSVG : ''}
+              </button>`;
     }).join('');
-    html += `<div class="attr-chip-row"><span class="subcat-group-label">${attr.name}:</span>${chips}</div>`;
+    html += `<div class="attr-chip-row"><span class="subcat-group-label">${root.name}</span>${level1Html}</div>`;
+
+    // Level-2 rows — labelled with parent chip name
+    visibleChildren.forEach(ch => {
+      if (!expandedLevel1.has(ch.slug) || !ch.children.length) return;
+      const gcHtml = ch.children.map(gc => {
+        const active = currentCatsSet.has(gc.slug);
+        return `<button type="button"
+                  class="subcat-chip${active ? ' active' : ''}"
+                  onclick="leafChipClick(this,'${gc.slug}')">
+                  ${gc.name}<span class="subcat-chip-count">${gc.product_count}</span>
+                </button>`;
+      }).join('');
+      html += `<div class="attr-chip-row attr-chip-row-l2"><span class="subcat-group-label">${ch.name}</span>${gcHtml}</div>`;
+    });
   });
+
+  // ── Divider between sections ──────────────────────────────────
+  if (showLabels && drillRoots.length > 0) {
+    html += `<div class="mobile-chip-divider"></div>`;
+  }
+
+  // ── Section 2: filter attributes (e.g. Frame Shape, Gender) ───
+  if (attrRoots.length > 0 && filterAttributesData.length > 0) {
+    filterAttributesData.forEach(attr => {
+      const selVals = (currentSelectedAttrs[attr.slug] || []).map(v => v.toLowerCase());
+      const chipsHtml = attr.options.map(opt => {
+        const active = selVals.includes(opt.value.toLowerCase());
+        return `<button type="button"
+                  class="subcat-chip subcat-chip-l2${active ? ' active' : ''}"
+                  data-attr-slug="${attr.slug}"
+                  data-attr-value="${opt.value.replace(/"/g,'&quot;')}"
+                  onclick="attrChipClick(this)">
+                  ${opt.value}
+                </button>`;
+      }).join('');
+      html += `<div class="attr-chip-row"><span class="subcat-group-label">${attr.name}</span>${chipsHtml}</div>`;
+    });
+  }
+
+  if (!html) { row.style.display = 'none'; return; }
   inner.innerHTML = html;
   row.style.display = 'block';
 }
 
-let chipTimer = null;
-
-function toggleAttrChip(chipEl) {
-  const slug  = chipEl.dataset.slug;
-  const value = chipEl.dataset.value;
-  // Sync with the sidebar checkbox so both stay in step
-  const cb = document.querySelector(`input[name="${slug}"][value="${value}"]`);
-  if (cb) {
-    cb.checked = !cb.checked;
-    chipEl.classList.toggle('active', cb.checked);
+// ── Click handlers ────────────────────────────────────────────────
+function drillChipClick(chipEl, slug, hasChildren) {
+  if (hasChildren) {
+    expandedLevel1.has(slug) ? expandedLevel1.delete(slug) : expandedLevel1.add(slug);
+    const cb = document.querySelector(`input[name="category"][value="${slug}"]`);
+    if (cb) cb.checked = !cb.checked;
+    renderMobileChips();
+    scheduleApply();
   } else {
-    chipEl.classList.toggle('active');
+    leafChipClick(chipEl, slug);
   }
-  // Short debounce so tapping multiple chips submits only once
-  clearTimeout(chipTimer);
-  chipTimer = setTimeout(applyFilters, 450);
 }
 
-// ── Top-nav category toggle (URL-based, same path as chips) ───
+function leafChipClick(chipEl, slug) {
+  const cb = document.querySelector(`input[name="category"][value="${slug}"]`);
+  if (cb) { cb.checked = !cb.checked; chipEl.classList.toggle('active', cb.checked); }
+  else    { chipEl.classList.toggle('active'); }
+  scheduleApply();
+}
+
+function attrChipClick(chipEl) {
+  const slug  = chipEl.dataset.attrSlug;
+  const value = chipEl.dataset.attrValue;
+  const cb    = document.querySelector(`input[name="${slug}"][value="${value}"]`);
+  if (cb) { cb.checked = !cb.checked; chipEl.classList.toggle('active', cb.checked); }
+  else    { chipEl.classList.toggle('active'); }
+  scheduleApply();
+}
+
+// ── Top-nav category toggle (URL-based) ──────────────────────────
 function topNavToggle(slug) {
-  const url = new URL(window.location.href);
+  const url      = new URL(window.location.href);
   const existing = url.searchParams.getAll('category');
   url.searchParams.delete('category');
   if (existing.includes(slug)) {
-    // Deselect — remove this category
     existing.filter(c => c !== slug).forEach(c => url.searchParams.append('category', c));
   } else {
-    // Select — add this category
     existing.forEach(c => url.searchParams.append('category', c));
     url.searchParams.append('category', slug);
   }
@@ -539,8 +721,8 @@ function topNavToggle(slug) {
   window.location.href = url.toString();
 }
 
-// Auto-show attr chips if a category is already selected on load
-if (currentCatsSet.size > 0) { showAttrChipRow(); }
+// Auto-render on page load
+renderMobileChips();
 
 // ── Remove a single filter chip ────────────────────────────────
 function removeFilter(name, value) {

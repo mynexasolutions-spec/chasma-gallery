@@ -30,11 +30,18 @@
     <select name="parent_id" class="admin-input" style="background:#fff;">
       <option value="">— None (Top Level) —</option>
       {% for cat in categories %}
-        {% if not category or cat.id != category.id %}
-        <option value="{{ cat.id }}" {% if category and category.parent_id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+        {# Skip self and own descendants to prevent circular hierarchy #}
+        {% if not category or (cat.id != category.id and cat.grandparent_id != category.id and cat.parent_id != category.id) %}
+        <option value="{{ cat.id }}" {% if category and category.parent_id == cat.id %}selected{% endif %}>
+          {%- if cat.depth == 0 %}{{ cat.name }}
+          {%- elif cat.depth == 1 %}&nbsp;&nbsp;&nbsp;↳ {{ cat.name }}
+          {%- else %}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳ {{ cat.name }}
+          {%- endif %}
+        </option>
         {% endif %}
       {% endfor %}
     </select>
+    <p style="font-size:0.78rem; color:var(--admin-text-muted); margin-top:0.4rem;">Leave blank to make this a top-level category. Maximum 3 levels deep.</p>
   </div>
 
   <div style="margin-bottom:1.5rem;">

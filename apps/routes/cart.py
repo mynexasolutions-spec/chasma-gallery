@@ -57,7 +57,24 @@ def cart_add():
                     display_name += f" ({' / '.join(o['value'] for o in opts)})"
             item_key = variation_id
 
-        is_contacts = product.get("category_slug") in ("contacts", "contact-lenses")
+        # Check if product is under the Contacts hierarchy (any depth)
+        is_contacts = False
+        try:
+            curr = db.query_one(
+                "SELECT id, parent_id, slug FROM categories WHERE id = "
+                "(SELECT category_id FROM products WHERE id = %s)",
+                [product_id]
+            )
+            while curr:
+                if curr["slug"] == "contacts":
+                    is_contacts = True
+                    break
+                curr = db.query_one(
+                    "SELECT id, parent_id, slug FROM categories WHERE id = %s",
+                    [curr["parent_id"]]
+                ) if curr["parent_id"] else None
+        except Exception:
+            pass
         cart = session.get("cart", {})
 
         if is_contacts and selected_options and "||" in selected_options:

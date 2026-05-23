@@ -70,9 +70,15 @@ def get_products(search=None, categories=(), brands=(), filter_attrs=(),
     cats_list = list(c for c in (list(categories or []) + ([category] if category else [])) if c)
     if len(cats_list) > 1:
         all_cats = get_categories()
-        sel_cats = [c for c in all_cats if c["slug"] in cats_list]
-        parent_ids = {c["parent_id"] for c in sel_cats if c.get("parent_id")}
-        cats = tuple(c["slug"] for c in sel_cats if c["id"] not in parent_ids)
+        cat_by_slug = {c["slug"]: c for c in all_cats}
+        sel_cats = [cat_by_slug[s] for s in cats_list if s in cat_by_slug]
+        # Keep only the most-specific categories (remove ancestors if a descendant is selected)
+        sel_ids = {c["id"] for c in sel_cats}
+        cats = tuple(
+            c["slug"] for c in sel_cats
+            if c.get("parent_id") not in sel_ids
+            and c.get("grandparent_id") not in sel_ids
+        )
     else:
         cats = tuple(cats_list)
         
@@ -86,13 +92,16 @@ def get_products(search=None, categories=(), brands=(), filter_attrs=(),
         params += [f"%{search}%", f"%{search}%", f"%{search}%"]
     if cats:
         ph = ",".join(["%s"] * len(cats))
-        # Include products from the selected category AND any of its child categories
+        # Recursive: include products from selected category AND all descendants (any depth)
         conditions.append(f"""p.category_id IN (
-            SELECT id FROM categories
-            WHERE slug IN ({ph})
-               OR parent_id IN (SELECT id FROM categories WHERE slug IN ({ph}))
+            WITH RECURSIVE cat_tree AS (
+                SELECT id FROM categories WHERE slug IN ({ph})
+                UNION ALL
+                SELECT c.id FROM categories c JOIN cat_tree ct ON c.parent_id = ct.id
+            )
+            SELECT id FROM cat_tree
         )""")
-        params += list(cats) + list(cats)
+        params += list(cats)
     if brnds:
         ph = ",".join(["%s"] * len(brnds))
         conditions.append(f"b.slug IN ({ph})")
@@ -349,26 +358,47 @@ def get_related_products(category_slug, exclude_id, limit=4):
 @ttl_cache(ttl_seconds=120)
 def get_categories():
     return db.query("""
-        SELECT c.id, c.name, c.slug, c.parent_id, cp.name AS parent_name, c.image_url AS img,
+        WITH RECURSIVE cat_tree AS (
+            SELECT id, name, slug, parent_id, image_url AS img, is_featured,
+                   NULL::text  AS parent_name,
+                   NULL::uuid  AS grandparent_id,
+                   name::text  AS full_path,
+                   0           AS depth
+            FROM categories
+            WHERE parent_id IS NULL
+            UNION ALL
+            SELECT c.id, c.name, c.slug, c.parent_id, c.image_url AS img, c.is_featured,
+                   ct.name        AS parent_name,
+                   ct.parent_id   AS grandparent_id,
+                   ct.full_path || ' › ' || c.name AS full_path,
+                   ct.depth + 1
+            FROM categories c
+            JOIN cat_tree ct ON c.parent_id = ct.id
+        )
+        SELECT ct.id, ct.name, ct.slug, ct.parent_id, ct.img, ct.is_featured,
+               ct.parent_name, ct.grandparent_id, ct.full_path, ct.depth,
                (
                    SELECT COUNT(*)
                    FROM products p
                    WHERE p.is_active = TRUE
-                     AND (
-                         p.category_id = c.id
-                         OR p.category_id IN (
-                             SELECT id FROM categories WHERE parent_id = c.id
-                         )
+                     AND p.category_id IN (
+                         -- self + children + grandchildren (3 levels)
+                         SELECT ct.id
+                         UNION ALL
+                         SELECT ch.id  FROM categories ch WHERE ch.parent_id = ct.id
+                         UNION ALL
+                         SELECT gc.id  FROM categories gc
+                             JOIN categories ch ON gc.parent_id = ch.id
+                             WHERE ch.parent_id = ct.id
                      )
                ) AS product_count
-        FROM categories c
-        LEFT JOIN categories cp ON cp.id = c.parent_id
+        FROM cat_tree ct
         ORDER BY
-            CASE WHEN c.slug = 'eyeglasses' THEN 0
-                 WHEN c.slug = 'contacts'   THEN 1
-                 WHEN c.slug = 'sunglasses' THEN 2
+            CASE WHEN ct.slug = 'eyeglasses' THEN 0
+                 WHEN ct.slug = 'contacts'   THEN 1
+                 WHEN ct.slug = 'sunglasses' THEN 2
                  ELSE 3 END ASC,
-            c.name ASC
+            ct.full_path ASC
     """)
 
 

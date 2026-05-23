@@ -159,19 +159,82 @@
     });
   });
 
+  let _pendingRemovePid = null;
+
   function removeItem(pid) {
-    if (confirm('Are you sure you want to remove this item?')) {
-      document.getElementById('removePid').value = pid;
-      document.getElementById('removeForm').submit();
-    }
+    _pendingRemovePid = pid;
+    document.getElementById('removeModal').classList.add('open');
   }
+
+  document.getElementById('removeModalCancel').addEventListener('click', () => {
+    document.getElementById('removeModal').classList.remove('open');
+    _pendingRemovePid = null;
+  });
+
+  document.getElementById('removeModalConfirm').addEventListener('click', () => {
+    if (!_pendingRemovePid) return;
+    document.getElementById('removePid').value = _pendingRemovePid;
+    document.getElementById('removeForm').submit();
+  });
+
+  // Close on backdrop click
+  document.getElementById('removeModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      this.classList.remove('open');
+      _pendingRemovePid = null;
+    }
+  });
 </script>
+
+<!-- Remove Confirmation Modal -->
+<div id="removeModal" class="remove-modal-backdrop">
+  <div class="remove-modal-box glass">
+    <div style="font-size:2rem; margin-bottom:0.75rem;">🗑️</div>
+    <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:0.4rem; color:var(--text-main);">Remove item?</h3>
+    <p style="color:var(--text-muted); font-size:0.9rem; margin-bottom:1.5rem;">This item will be removed from your cart.</p>
+    <div style="display:flex; gap:0.75rem; justify-content:center;">
+      <button id="removeModalCancel" type="button"
+              style="padding:0.65rem 1.5rem; border-radius:0.6rem; border:1px solid var(--border-glass);
+                     background:transparent; color:var(--text-muted); font-size:0.9rem; font-weight:600;
+                     cursor:pointer; transition:0.2s;"
+              onmouseover="this.style.background='rgba(255,255,255,0.07)'"
+              onmouseout="this.style.background='transparent'">
+        Keep it
+      </button>
+      <button id="removeModalConfirm" type="button"
+              style="padding:0.65rem 1.5rem; border-radius:0.6rem; border:none;
+                     background:rgba(239,68,68,0.15); color:#f87171; font-size:0.9rem; font-weight:700;
+                     cursor:pointer; transition:0.2s;"
+              onmouseover="this.style.background='rgba(239,68,68,0.25)'"
+              onmouseout="this.style.background='rgba(239,68,68,0.15)'">
+        Yes, remove
+      </button>
+    </div>
+  </div>
+</div>
+
 <style>
-  /* Hide spin buttons for cleaner quantity input */
-  input[type=number]::-webkit-inner-spin-button, 
-  input[type=number]::-webkit-outer-spin-button { 
-    -webkit-appearance: none; 
-    margin: 0; 
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+
+  .remove-modal-backdrop {
+    display: none;
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(4px);
+    align-items: center; justify-content: center;
+  }
+  .remove-modal-backdrop.open { display: flex; }
+  .remove-modal-box {
+    border-radius: 1.25rem;
+    padding: 2rem 2.25rem;
+    max-width: 340px; width: 90%;
+    text-align: center;
+    animation: modalPop 0.18s ease;
+  }
+  @keyframes modalPop {
+    from { transform: scale(0.9); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
   }
 </style>
 {% endblock %}

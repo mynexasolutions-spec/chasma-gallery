@@ -395,7 +395,7 @@
     const allFilled  = filled.length === selects.length;
     const selectedIds = filled.map(s => s.value);
     
-    const isContacts = ["contacts", "contact-lenses"].includes("{{ product.category_slug }}");
+    const isContacts = {{ 'true' if is_contacts else 'false' }};
 
     // Defaults
     btn.disabled = true;

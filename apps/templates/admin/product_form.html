@@ -177,12 +177,24 @@
         <div style="margin-bottom:1.25rem;">
           <label class="admin-label">Category</label>
           <select name="category_id" class="admin-input" style="background:#fff;">
-            <option value="">No Category</option>
+            <option value="">— No Category —</option>
+            {% set ns = namespace(cur_root='') %}
             {% for c in categories %}
-            <option value="{{ c.id }}" {% if product and product.category_id==c.id %}selected{% endif %}>
-              {%- if c.parent_name %}{{ c.parent_name }} &rsaquo; {% endif %}{{ c.name }}
-            </option>
+              {# Insert optgroup divider whenever the root category changes #}
+              {% if c.depth == 0 and c.name != ns.cur_root %}
+                {% if ns.cur_root != '' %}</optgroup>{% endif %}
+                <optgroup label="{{ c.name }}">
+                {% set ns.cur_root = c.name %}
+              {% endif %}
+              <option value="{{ c.id }}" {% if product and product.category_id == c.id %}selected{% endif %}
+                      style="{% if c.depth == 0 %}font-weight:700;{% elif c.depth == 1 %}padding-left:1rem;{% else %}padding-left:2rem;{% endif %}">
+                {%- if c.depth == 0 %}{{ c.name }}
+                {%- elif c.depth == 1 %}&nbsp;&nbsp;↳ {{ c.name }}
+                {%- else %}&nbsp;&nbsp;&nbsp;&nbsp;↳ {{ c.name }}
+                {%- endif %}
+              </option>
             {% endfor %}
+            {% if ns.cur_root != '' %}</optgroup>{% endif %}
           </select>
         </div>
 
