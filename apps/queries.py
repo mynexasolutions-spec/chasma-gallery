@@ -73,11 +73,17 @@ def get_products(search=None, categories=(), brands=(), filter_attrs=(),
         cat_by_slug = {c["slug"]: c for c in all_cats}
         sel_cats = [cat_by_slug[s] for s in cats_list if s in cat_by_slug]
         # Keep only the most-specific categories (remove ancestors if a descendant is selected)
-        sel_ids = {c["id"] for c in sel_cats}
+        ancestor_ids = set()
+        for c in sel_cats:
+            pid = c.get("parent_id")
+            gpid = c.get("grandparent_id")
+            if pid:
+                ancestor_ids.add(pid)
+            if gpid:
+                ancestor_ids.add(gpid)
         cats = tuple(
             c["slug"] for c in sel_cats
-            if c.get("parent_id") not in sel_ids
-            and c.get("grandparent_id") not in sel_ids
+            if c["id"] not in ancestor_ids
         )
     else:
         cats = tuple(cats_list)
@@ -362,6 +368,7 @@ def get_categories():
             SELECT id, name, slug, parent_id, image_url AS img, is_featured,
                    NULL::text  AS parent_name,
                    NULL::uuid  AS grandparent_id,
+                   slug::text  AS root_slug,
                    name::text  AS full_path,
                    0           AS depth
             FROM categories
@@ -370,6 +377,7 @@ def get_categories():
             SELECT c.id, c.name, c.slug, c.parent_id, c.image_url AS img, c.is_featured,
                    ct.name        AS parent_name,
                    ct.parent_id   AS grandparent_id,
+                   ct.root_slug   AS root_slug,
                    ct.full_path || ' › ' || c.name AS full_path,
                    ct.depth + 1
             FROM categories c
@@ -394,9 +402,9 @@ def get_categories():
                ) AS product_count
         FROM cat_tree ct
         ORDER BY
-            CASE WHEN ct.slug = 'eyeglasses' THEN 0
-                 WHEN ct.slug = 'contacts'   THEN 1
-                 WHEN ct.slug = 'sunglasses' THEN 2
+            CASE WHEN ct.root_slug = 'eyeglasses' THEN 0
+                 WHEN ct.root_slug = 'contacts'   THEN 1
+                 WHEN ct.root_slug = 'sunglasses' THEN 2
                  ELSE 3 END ASC,
             ct.full_path ASC
     """)

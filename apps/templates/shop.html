@@ -98,6 +98,32 @@
   letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 0.6rem;
   display: flex; align-items: center; justify-content: space-between;
 }
+
+/* ── Premium Loading Indicator ──────────────────────────────── */
+#shopLoader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), #a855f7);
+  box-shadow: 0 0 12px var(--primary), 0 0 20px rgba(96, 165, 250, 0.5);
+  z-index: 99999;
+  transition: width 0.4s cubic-bezier(0.1, 0.8, 0.3, 1), opacity 0.3s ease;
+  pointer-events: none;
+}
+.shop-layout.loading-active .product-grid,
+.shop-layout.loading-active .pagination,
+.shop-layout.loading-active .no-results-card {
+  opacity: 0.45;
+  filter: blur(1px);
+  pointer-events: none;
+}
+.shop-layout .product-grid,
+.shop-layout .pagination,
+.shop-layout .no-results-card {
+  transition: opacity 0.15s ease, filter 0.15s ease;
+}
 </style>
 {% endblock %}
 
@@ -516,19 +542,208 @@ function toggleCatGroup(btn) {
   btn.classList.toggle('open', isOpen);
 }
 
-// ── Apply filters (submit form, reset to page 1) ───────────────
-function applyFilters() {
-  document.getElementById('pageInput').value  = 1;
-  document.getElementById('searchInput') && (
-    document.getElementById('searchInput').name = 'search'
-  );
-  document.getElementById('filterForm').submit();
+// ── AJAX Fetch & Dynamic Swap ──────────────────────────────────
+let currentAbortController = null;
+
+function fetchShopData(url, pushToHistory = true) {
+  // Cancel any ongoing fetch request
+  if (currentAbortController) {
+    currentAbortController.abort();
+  }
+
+  // Create a new AbortController for this fetch
+  currentAbortController = new AbortController();
+  const { signal } = currentAbortController;
+
+  // Visual feedback: activate loading transition state on layout
+  const layout = document.querySelector('.shop-layout');
+  if (layout) {
+    layout.classList.add('loading-active');
+  }
+
+  // Set up and show glowing loader bar
+  let loader = document.getElementById('shopLoader');
+  if (!loader) {
+    loader = document.createElement('div');
+    loader.id = 'shopLoader';
+    document.body.appendChild(loader);
+  }
+  loader.style.opacity = '1';
+  loader.style.width = '30%';
+
+  fetch(url, {
+    signal,
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest'
+    }
+  })
+  .then(response => {
+    loader.style.width = '70%';
+    return response.text();
+  })
+  .then(html => {
+    loader.style.width = '100%';
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // Save active accordion open states prior to replacing sidebar form
+    const openCategories = [];
+    document.querySelectorAll('.cat-children.open').forEach(el => {
+      const row = el.previousElementSibling;
+      if (row && row.classList.contains('cat-parent-row')) {
+        const input = row.querySelector('input[name="category"]');
+        if (input) {
+          openCategories.push(input.value);
+        }
+      }
+    });
+
+    // Save mobile sidebar open state
+    const sidebarContent = document.getElementById('shopSidebarContent');
+    const wasMobileOpen = sidebarContent ? sidebarContent.classList.contains('open') : false;
+
+    // 1. Swap main products section
+    const oldMain = document.querySelector('main');
+    const newMain = doc.querySelector('main');
+    if (oldMain && newMain) {
+      oldMain.innerHTML = newMain.innerHTML;
+    }
+
+    // 2. Swap sidebar filter form
+    const oldForm = document.getElementById('filterForm');
+    const newForm = doc.querySelector('#filterForm');
+    if (oldForm && newForm) {
+      oldForm.innerHTML = newForm.innerHTML;
+    }
+
+    // 3. Swap top navigation categories
+    const oldTopNav = document.querySelector('.shop-category-nav');
+    const newTopNav = doc.querySelector('.shop-category-nav');
+    if (oldTopNav && newTopNav) {
+      oldTopNav.innerHTML = newTopNav.innerHTML;
+    }
+
+    // Restore accordion states
+    openCategories.forEach(val => {
+      const input = document.querySelector(`#filterForm input[name="category"][value="${val}"]`);
+      if (input) {
+        const row = input.closest('.cat-parent-row');
+        if (row) {
+          const group = row.parentElement;
+          const children = group.querySelector(':scope > .cat-children');
+          const chevron = row.querySelector('.cat-chevron');
+          if (children) children.classList.add('open');
+          if (chevron) chevron.classList.add('open');
+        }
+      }
+    });
+
+    // Restore mobile sidebar open state
+    const newSidebarContent = document.getElementById('shopSidebarContent');
+    if (newSidebarContent && wasMobileOpen) {
+      newSidebarContent.classList.add('open');
+      const arrow = document.getElementById('shopFilterArrow');
+      if (arrow) arrow.textContent = '▲';
+    }
+
+    // Update history state
+    if (pushToHistory) {
+      window.history.pushState({ url }, '', url);
+    }
+
+    // Update dynamic state variables for mobile chips
+    currentCatsSet.clear();
+    document.querySelectorAll('#filterForm input[name="category"]:checked').forEach(cb => {
+      currentCatsSet.add(cb.value);
+    });
+
+    for (const key in currentSelectedAttrs) delete currentSelectedAttrs[key];
+    filterAttributesData.forEach(attr => {
+      const checked = Array.from(document.querySelectorAll(`#filterForm input[name="${attr.slug}"]:checked`)).map(cb => cb.value);
+      if (checked.length > 0) {
+        currentSelectedAttrs[attr.slug] = checked;
+      }
+    });
+
+    // Re-render mobile chips
+    renderMobileChips();
+
+    // Scroll up if the products layout has scrolled past viewport
+    if (layout) {
+      const rect = layout.getBoundingClientRect();
+      if (rect.top < 0) {
+        window.scrollTo({
+          top: window.scrollY + rect.top - 80,
+          behavior: 'smooth'
+        });
+      }
+    }
+  })
+  .catch(err => {
+    if (err.name === 'AbortError') {
+      // Ignore aborted fetches intentionally triggered by newer clicks
+      return;
+    }
+    console.error('Error fetching dynamic filter results:', err);
+  })
+  .finally(() => {
+    // Only deactivate loader states if this is the active request
+    if (currentAbortController && currentAbortController.signal === signal) {
+      if (layout) {
+        layout.classList.remove('loading-active');
+      }
+      setTimeout(() => {
+        if (loader) {
+          loader.style.opacity = '0';
+          setTimeout(() => { loader.style.width = '0'; }, 300);
+        }
+      }, 200);
+    }
+  });
 }
 
-// ── Go to a specific page preserving all filters ───────────────
+// ── Apply filters (asynchronously) ─────────────────────────────
+function applyFilters() {
+  const form = document.getElementById('filterForm');
+  document.getElementById('pageInput').value = 1;
+  if (document.getElementById('searchInput')) {
+    document.getElementById('searchInput').name = 'search';
+  }
+
+  const formData = new FormData(form);
+  const params = new URLSearchParams();
+  for (const [key, value] of formData.entries()) {
+    if (value) {
+      params.append(key, value);
+    }
+  }
+
+  const actionUrl = form.getAttribute('action') || window.location.pathname;
+  const queryString = params.toString();
+  const fetchUrl = queryString ? `${actionUrl}?${queryString}` : actionUrl;
+
+  fetchShopData(fetchUrl);
+}
+
+// ── Go to a specific page (asynchronously) ─────────────────────
 function gotoPage(n) {
+  const form = document.getElementById('filterForm');
   document.getElementById('pageInput').value = n;
-  document.getElementById('filterForm').submit();
+
+  const formData = new FormData(form);
+  const params = new URLSearchParams();
+  for (const [key, value] of formData.entries()) {
+    if (value) {
+      params.append(key, value);
+    }
+  }
+
+  const actionUrl = form.getAttribute('action') || window.location.pathname;
+  const queryString = params.toString();
+  const fetchUrl = queryString ? `${actionUrl}?${queryString}` : actionUrl;
+
+  fetchShopData(fetchUrl);
 }
 
 // ── Mobile subcategory drill-down ────────────────────────────────
@@ -558,8 +773,8 @@ mobileCatTree[{{ root.slug | tojson }}] = {
 {% endfor %}
 
 // ── State ─────────────────────────────────────────────────────────
-const currentCatsSet      = new Set({{ current_categories | tojson }});
-const currentSelectedAttrs = {{ current_filter_attrs | tojson }};
+let currentCatsSet      = new Set({{ current_categories | tojson }});
+let currentSelectedAttrs = {{ current_filter_attrs | tojson }};
 const expandedLevel1       = new Set();
 
 // Filter attributes (Frame Shape, Gender etc.) — for non-subcategory roots
@@ -690,6 +905,7 @@ function drillChipClick(chipEl, slug, hasChildren) {
   }
 }
 
+// ── Leaf chip click ──────────────────────────────────────────────
 function leafChipClick(chipEl, slug) {
   const cb = document.querySelector(`input[name="category"][value="${slug}"]`);
   if (cb) { cb.checked = !cb.checked; chipEl.classList.toggle('active', cb.checked); }
@@ -697,6 +913,7 @@ function leafChipClick(chipEl, slug) {
   scheduleApply();
 }
 
+// ── Attribute chip click ─────────────────────────────────────────
 function attrChipClick(chipEl) {
   const slug  = chipEl.dataset.attrSlug;
   const value = chipEl.dataset.attrValue;
@@ -706,7 +923,7 @@ function attrChipClick(chipEl) {
   scheduleApply();
 }
 
-// ── Top-nav category toggle (URL-based) ──────────────────────────
+// ── Top-nav category toggle (URL-based with AJAX) ────────────────
 function topNavToggle(slug) {
   const url      = new URL(window.location.href);
   const existing = url.searchParams.getAll('category');
@@ -718,7 +935,7 @@ function topNavToggle(slug) {
     url.searchParams.append('category', slug);
   }
   url.searchParams.set('page', '1');
-  window.location.href = url.toString();
+  fetchShopData(url.toString());
 }
 
 // Auto-render on page load
@@ -745,5 +962,18 @@ function removeAttrFilter(slug, value) {
   if (cb) cb.checked = false;
   applyFilters();
 }
+
+// Prevent traditional form submission and handle it with AJAX instead
+document.addEventListener('submit', function(e) {
+  if (e.target && e.target.id === 'filterForm') {
+    e.preventDefault();
+    applyFilters();
+  }
+});
+
+// Handle browser back/forward buttons
+window.addEventListener('popstate', function(e) {
+  fetchShopData(window.location.href, false);
+});
 </script>
 {% endblock %}
