@@ -374,18 +374,47 @@ document.addEventListener('DOMContentLoaded', function() {
     const varSections = document.getElementById('variableSections');
 
     function updateVisibility() {
-        if (typeSelect.value === 'variable') {
-            varSections.style.display = 'block';
-        } else {
-            varSections.style.display = 'none';
+        const isVariable = (typeSelect.value === 'variable');
+        varSections.style.display = isVariable ? 'block' : 'none';
+        
+        // Disable/enable all inputs inside varSections to prevent submitting them for simple products
+        varSections.querySelectorAll('input, select, textarea').forEach(input => {
+            if (!isVariable) {
+                input.disabled = true;
+            } else {
+                if (input.classList.contains('attr-checkbox')) {
+                    input.disabled = false;
+                }
+            }
+        });
+        
+        if (isVariable) {
+            // Re-evaluate child checkboxes states
+            document.querySelectorAll('.attr-checkbox').forEach(cb => {
+                updateAttrValuesState(cb);
+            });
         }
     }
 
     typeSelect.addEventListener('change', updateVisibility);
+    // Run once on load to ensure initial state is correct for simple/variable product type
+    setTimeout(updateVisibility, 0);
+
+    function updateAttrValuesState(cb) {
+        const wrapper = cb.closest('div');
+        const valuesDiv = wrapper.querySelector('.attr-values');
+        if (valuesDiv) {
+            valuesDiv.style.display = cb.checked ? 'flex' : 'none';
+            valuesDiv.querySelectorAll('input[type="checkbox"]').forEach(child => {
+                child.disabled = !cb.checked;
+            });
+        }
+    }
 
     document.querySelectorAll('.attr-checkbox').forEach(cb => {
+        updateAttrValuesState(cb);
         cb.addEventListener('change', function () {
-            this.closest('div').querySelector('.attr-values').style.display = this.checked ? 'flex' : 'none';
+            updateAttrValuesState(this);
         });
     });
 });

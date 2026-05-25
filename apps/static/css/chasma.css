@@ -407,34 +407,80 @@ nav.navbar {
 /* ===== CATEGORY CARDS ===== */
 .product-category-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
-  gap: 1rem;
-  width: 100vw; margin-left: calc(50% - 50vw); padding: 0 5%;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 2rem;
+  width: 100vw; margin-left: calc(50% - 50vw); padding: 0 8%;
+  justify-items: center;
 }
 .category-card {
-  position: relative; height: 260px;
-  border-radius: 1.5rem; cursor: pointer; overflow: hidden;
-  transition: transform 0.4s ease;
+  position: relative;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50% !important;
+  cursor: pointer;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.category-card:hover { transform: translateY(-10px); }
-.category-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
-.category-card:hover img { transform: scale(1.1); }
+.category-card:hover {
+  transform: translateY(-8px) scale(1.03);
+  border-color: var(--primary);
+  box-shadow: 0 12px 40px 0 rgba(59, 130, 246, 0.25);
+}
+.category-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+.category-card:hover img {
+  transform: scale(1.1);
+}
 .cat-gradient {
-  position: absolute; bottom: 0; width: 100%;
-  padding: 1.5rem;
-  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-  color: white; display: flex; flex-direction: column;
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.65) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1rem;
+  transition: background 0.3s ease;
 }
-.cat-gradient h3 { font-size: 1.4rem; margin: 0; }
+.category-card:hover .cat-gradient {
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(0, 0, 0, 0.75) 100%);
+}
+.cat-gradient h3 {
+  font-size: 1.45rem !important;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+  letter-spacing: 1px;
+}
 
 @media (max-width: 768px) {
   .product-category-grid {
     grid-template-columns: repeat(3, 1fr) !important;
-    gap: 0.5rem !important; padding: 0 0.75rem !important;
+    gap: 1rem !important;
+    padding: 0 1rem !important;
   }
-  .category-card { height: 32vw !important; max-height: 180px; border-radius: 1rem !important; }
-  .cat-gradient { padding: 0.75rem !important; }
-  .cat-gradient h3 { font-size: 0.9rem !important; }
+  .category-card {
+    max-width: 100%;
+    aspect-ratio: 1 / 1;
+    border-radius: 50% !important;
+    border-width: 1.5px;
+  }
+  .cat-gradient { padding: 0.5rem !important; }
+  .cat-gradient h3 {
+    font-size: 0.95rem !important;
+    letter-spacing: 0.5px;
+  }
 }
 
 /* ===== PRODUCT CARDS / SLIDER ===== */

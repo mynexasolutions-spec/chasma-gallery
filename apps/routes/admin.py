@@ -11,12 +11,31 @@ from queries import get_products, get_categories, get_brands, get_admin_stats, g
 
 
 def _collect_val_ids(form):
-    """Merge attribute_value_ids checkboxes + filter_attr_* radio buttons into one list."""
-    val_ids = list(form.getlist("attribute_value_ids"))
+    """Merge attribute_value_ids checkboxes + filter_attr_* radio buttons into one list,
+       filtering out any checkbox values whose parent attribute is not active/checked."""
+    raw_val_ids = list(form.getlist("attribute_value_ids"))
+    
+    # Extract active attribute IDs from form (the checked checkboxes)
+    active_attr_ids = set(form.getlist("attribute_ids"))
+    
+    # If there are any checkbox values, retrieve their attribute_ids and filter
+    valid_val_ids = []
+    if raw_val_ids:
+        placeholders = ",".join(["%s"] * len(raw_val_ids))
+        val_to_attr = {
+            str(r["id"]): str(r["attribute_id"])
+            for r in db.query(f"SELECT id, attribute_id FROM attribute_values WHERE id IN ({placeholders})", raw_val_ids)
+        }
+        for vid in raw_val_ids:
+            if vid in val_to_attr and val_to_attr[vid] in active_attr_ids:
+                valid_val_ids.append(vid)
+                
+    # Add the radio button selections
     for key, val in form.items():
         if key.startswith("filter_attr_") and val:
-            val_ids.append(val)
-    return val_ids
+            valid_val_ids.append(val)
+            
+    return list(dict.fromkeys(valid_val_ids))
 
 
 def _sanitize_sku_prefix(prefix, fallback):
