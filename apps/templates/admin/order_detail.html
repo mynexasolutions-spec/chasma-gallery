@@ -1,7 +1,24 @@
 {% extends "admin/base.html" %}
-{% block title %}Order #{{ order.id[:8] }} – StoreAdmin{% endblock %}
+{% block title %}Order #{{ order.order_number or order.id[:8] }} – StoreAdmin{% endblock %}
 
 {% block content %}
+<style>
+  @media print {
+    body * { visibility: hidden !important; }
+    #printReceipt, #printReceipt * { visibility: visible !important; }
+    #printReceipt {
+      position: fixed !important;
+      top: 0 !important; left: 0 !important;
+      width: 80mm !important;
+      padding: 6mm !important;
+      font-size: 11px !important;
+      background: #fff !important;
+      color: #000 !important;
+      box-shadow: none !important;
+    }
+  }
+</style>
+
 <div style="margin-bottom:2rem;">
   <div style="display:flex; align-items:center; gap:0.5rem; color:var(--admin-text-muted); font-size:0.875rem; margin-bottom:1rem;">
     <a href="{{ url_for('admin_orders') }}" style="color:var(--admin-primary);">Orders</a>
@@ -10,16 +27,29 @@
   </div>
   <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:1rem;">
     <div>
-      <h1 style="font-size:1.5rem; font-weight:700; color:var(--admin-text-main);">Order #{{ order.id[:13] }}</h1>
-      <p style="color:var(--admin-text-muted); font-size:0.875rem;">Placed on {{ order.created_at.strftime('%B %d, %Y at %I:%M %p') if order.created_at else 'N/A' }}</p>
+      <h1 style="font-size:1.5rem; font-weight:700; color:var(--admin-text-main);">
+        Order #{{ order.order_number or order.id[:13] }}
+      </h1>
+      <p style="color:var(--admin-text-muted); font-size:0.875rem;">
+        Placed on {{ order.created_at.strftime('%B %d, %Y at %I:%M %p') if order.created_at else 'N/A' }}
+      </p>
     </div>
-    <span class="badge badge-{{ order.status }}" style="font-size:0.875rem; padding:0.5rem 1rem;">{{ order.status }}</span>
+    <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+      <span class="badge badge-{{ order.status }}" style="font-size:0.875rem; padding:0.5rem 1rem;">{{ order.status }}</span>
+      <button onclick="window.print()"
+              style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 1.1rem;
+                     background:#4f46e5; color:#fff; border:none; border-radius:0.5rem;
+                     font-size:0.85rem; font-weight:600; cursor:pointer;">
+        🖨️ Print Receipt
+      </button>
+    </div>
   </div>
 </div>
 
 <div class="admin-grid-order">
-  
+
   <div style="display:flex; flex-direction:column; gap:1.5rem;">
+
     <!-- Items Table -->
     <div class="admin-table-container">
       <div style="padding:1.25rem; border-bottom:1px solid var(--admin-border); background:#fff;">
@@ -38,7 +68,7 @@
         <tbody>
           {% for item in items %}
           <tr>
-            <td style="font-weight:600;">{{ item.product_name or 'Deleted Product' }}</td>
+            <td style="font-weight:600; max-width:260px; word-break:break-word;">{{ item.product_name or 'Deleted Product' }}</td>
             <td style="color:var(--admin-text-muted); font-family:monospace; font-size:0.8125rem;">{{ item.sku or '—' }}</td>
             <td>{{ item.quantity }}</td>
             <td>₹{{ "%.2f"|format(item.unit_price) }}</td>
@@ -48,15 +78,79 @@
         </tbody>
         <tfoot>
           <tr>
-            <td colspan="4" style="text-align:right; padding:1.25rem; font-weight:700; background:#f8fafc;">Toal Amount:</td>
+            <td colspan="5" style="text-align:right; padding:0.75rem 1.25rem; color:var(--admin-text-muted); background:#f8fafc;">Subtotal:</td>
+            <td style="text-align:right; padding:0.75rem 1.25rem; background:#f8fafc;">₹{{ "%.2f"|format(order.subtotal or order.total_amount) }}</td>
+          </tr>
+          {% if order.discount_amount and order.discount_amount > 0 %}
+          <tr>
+            <td colspan="5" style="text-align:right; padding:0.5rem 1.25rem; color:#16a34a; background:#f8fafc;">
+              Discount{% if order.coupon_code %} ({{ order.coupon_code }}){% endif %}:
+            </td>
+            <td style="text-align:right; padding:0.5rem 1.25rem; color:#16a34a; background:#f8fafc;">−₹{{ "%.2f"|format(order.discount_amount) }}</td>
+          </tr>
+          {% endif %}
+          {% if order.shipping_amount is not none %}
+          <tr>
+            <td colspan="5" style="text-align:right; padding:0.5rem 1.25rem; color:var(--admin-text-muted); background:#f8fafc;">Shipping:</td>
+            <td style="text-align:right; padding:0.5rem 1.25rem; background:#f8fafc;">
+              {% if order.shipping_amount == 0 %}Free{% else %}₹{{ "%.2f"|format(order.shipping_amount) }}{% endif %}
+            </td>
+          </tr>
+          {% endif %}
+          <tr>
+            <td colspan="5" style="text-align:right; padding:1.25rem; font-weight:700; background:#f8fafc;">Total Amount:</td>
             <td style="text-align:right; padding:1.25rem; font-weight:800; font-size:1.1rem; color:var(--admin-primary); background:#f8fafc;">₹{{ "%.2f"|format(order.total_amount) }}</td>
           </tr>
         </tfoot>
       </table>
     </div>
+
+    <!-- Shipping Address -->
+    <div class="admin-card">
+      <h3 style="font-size:0.875rem; font-weight:700; color:var(--admin-text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:1rem;">
+        📦 Shipping Address
+      </h3>
+      {% set a = shipping_address %}
+      {% if a %}
+      <div style="font-size:0.9375rem; line-height:1.8; color:var(--admin-text-main);">
+        {% set full_name = ((a.first_name or '') + ' ' + (a.last_name or '')).strip() %}
+        {% if full_name %}
+        <div style="font-weight:700; font-size:1rem;">{{ full_name }}</div>
+        {% endif %}
+        {% if a.phone %}
+        <div>📞 {{ a.phone }}</div>
+        {% endif %}
+        {% if a.address_line1 %}
+        <div>{{ a.address_line1 }}</div>
+        {% endif %}
+        {% if a.address_line2 %}
+        <div>{{ a.address_line2 }}</div>
+        {% endif %}
+        {% set city_state = [a.city, a.state] | select | join(', ') %}
+        {% if city_state %}
+        <div>{{ city_state }}{% if a.pincode %} – {{ a.pincode }}{% endif %}</div>
+        {% endif %}
+        {% if a.country %}
+        <div>{{ a.country }}</div>
+        {% endif %}
+      </div>
+      {% else %}
+      <div style="color:var(--admin-text-muted); font-size:0.875rem; font-style:italic;">No shipping address recorded.</div>
+      {% endif %}
+    </div>
+
+    <!-- Notes -->
+    {% if order.notes %}
+    <div class="admin-card">
+      <h3 style="font-size:0.875rem; font-weight:700; color:var(--admin-text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.75rem;">Order Notes</h3>
+      <p style="font-size:0.9rem; color:var(--admin-text-main); line-height:1.6;">{{ order.notes }}</p>
+    </div>
+    {% endif %}
+
   </div>
 
   <div style="display:flex; flex-direction:column; gap:1.5rem;">
+
     <!-- Customer Info -->
     <div class="admin-card">
       <h3 style="font-size:0.875rem; font-weight:700; color:var(--admin-text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:1rem;">Customer</h3>
@@ -66,7 +160,28 @@
         </div>
         <div>
           <div style="font-weight:600;">{{ order.customer_name or 'Guest Customer' }}</div>
-          <div style="font-size:0.8125rem; color:var(--admin-text-muted);">{{ order.customer_email }}</div>
+          <div style="font-size:0.8125rem; color:var(--admin-text-muted);">{{ order.customer_email or '—' }}</div>
+          {% if order.customer_phone %}
+          <div style="font-size:0.8125rem; color:var(--admin-text-muted);">📞 {{ order.customer_phone }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Info -->
+    <div class="admin-card">
+      <h3 style="font-size:0.875rem; font-weight:700; color:var(--admin-text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:1rem;">Payment</h3>
+      <div style="display:flex; flex-direction:column; gap:0.5rem; font-size:0.9rem;">
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--admin-text-muted);">Method</span>
+          <span style="font-weight:600;">{{ (order.payment_method or 'N/A') | upper }}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--admin-text-muted);">Status</span>
+          <span style="font-weight:600;
+            color:{% if order.payment_status == 'paid' %}#16a34a{% elif order.payment_status == 'failed' %}#dc2626{% else %}#d97706{% endif %};">
+            {{ (order.payment_status or 'pending') | title }}
+          </span>
         </div>
       </div>
     </div>
@@ -114,7 +229,105 @@
       </div>
       {% endif %}
     </div>
-  </div>
 
+  </div>
 </div>
+
+<!-- ── PRINT RECEIPT (hidden on screen, shown on print) ─────────── -->
+<div id="printReceipt" style="display:none; position:absolute; top:-9999px;">
+  <div style="font-family:'Courier New',monospace; font-size:11px; color:#000; width:72mm; padding:4mm; background:#fff;">
+
+    <div style="text-align:center; margin-bottom:6px;">
+      <div style="font-size:15px; font-weight:bold; letter-spacing:1px;">ChasmaGallery</div>
+      <div style="font-size:10px;">Sitapur, Uttar Pradesh</div>
+      <div style="border-top:1px dashed #000; margin:5px 0;"></div>
+    </div>
+
+    <div style="margin-bottom:4px;">
+      <b>Order:</b> {{ order.order_number or order.id[:13] }}<br>
+      <b>Date:</b> {{ order.created_at.strftime('%d-%m-%Y %I:%M %p') if order.created_at else 'N/A' }}<br>
+      <b>Status:</b> {{ order.status | title }}
+    </div>
+    <div style="border-top:1px dashed #000; margin:5px 0;"></div>
+
+    <!-- Ship To -->
+    <div style="margin-bottom:4px;">
+      <b>SHIP TO:</b><br>
+      {% set a = shipping_address %}
+      {% if a %}
+        {% set full_name = ((a.first_name or '') + ' ' + (a.last_name or '')).strip() %}
+        {% if full_name %}{{ full_name }}<br>{% endif %}
+        {% if a.phone %}Ph: {{ a.phone }}<br>{% endif %}
+        {% if a.address_line1 %}{{ a.address_line1 }}<br>{% endif %}
+        {% if a.address_line2 %}{{ a.address_line2 }}<br>{% endif %}
+        {% set city_state = [a.city, a.state] | select | join(', ') %}
+        {% if city_state %}{{ city_state }}{% if a.pincode %} – {{ a.pincode }}{% endif %}<br>{% endif %}
+        {% if a.country %}{{ a.country }}{% endif %}
+      {% else %}
+        {{ order.customer_name or 'N/A' }}<br>
+        {% if order.customer_phone %}Ph: {{ order.customer_phone }}{% endif %}
+      {% endif %}
+    </div>
+    <div style="border-top:1px dashed #000; margin:5px 0;"></div>
+
+    <!-- Items -->
+    <table style="width:100%; border-collapse:collapse; font-size:10px;">
+      <tr style="font-weight:bold; border-bottom:1px solid #000;">
+        <td style="padding:2px 0;">Item</td>
+        <td style="text-align:center; padding:2px 3px;">Qty</td>
+        <td style="text-align:right; padding:2px 0;">Amt</td>
+      </tr>
+      {% for item in items %}
+      <tr>
+        <td style="padding:2px 0; word-break:break-word; max-width:42mm;">
+          {{ item.product_name or 'Item' }}
+        </td>
+        <td style="text-align:center; padding:2px 3px;">{{ item.quantity }}</td>
+        <td style="text-align:right; padding:2px 0; white-space:nowrap;">₹{{ "%.0f"|format(item.unit_price * item.quantity) }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <div style="border-top:1px dashed #000; margin:5px 0;"></div>
+
+    {% if order.discount_amount and order.discount_amount > 0 %}
+    <div style="display:flex; justify-content:space-between;">
+      <span>Discount{% if order.coupon_code %} ({{ order.coupon_code }}){% endif %}</span>
+      <span>−₹{{ "%.0f"|format(order.discount_amount) }}</span>
+    </div>
+    {% endif %}
+    {% if order.shipping_amount is not none %}
+    <div style="display:flex; justify-content:space-between;">
+      <span>Shipping</span>
+      <span>{% if order.shipping_amount == 0 %}Free{% else %}₹{{ "%.0f"|format(order.shipping_amount) }}{% endif %}</span>
+    </div>
+    {% endif %}
+    <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:12px; margin-top:3px;">
+      <span>TOTAL</span>
+      <span>₹{{ "%.0f"|format(order.total_amount) }}</span>
+    </div>
+    <div style="border-top:1px dashed #000; margin:5px 0;"></div>
+
+    <div style="text-align:center; font-size:10px;">
+      <div>Payment: {{ (order.payment_method or 'N/A') | upper }}</div>
+      <div style="margin-top:6px; font-size:9px;">Thank you for shopping with us!</div>
+      <div style="font-size:9px;">ChasmaGallery, Sitapur</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Make the print receipt div visible only during printing
+  window.addEventListener('beforeprint', function() {
+    document.getElementById('printReceipt').style.display = 'block';
+    document.getElementById('printReceipt').style.position = 'fixed';
+    document.getElementById('printReceipt').style.top = '0';
+    document.getElementById('printReceipt').style.left = '0';
+  });
+  window.addEventListener('afterprint', function() {
+    document.getElementById('printReceipt').style.display = 'none';
+    document.getElementById('printReceipt').style.position = 'absolute';
+    document.getElementById('printReceipt').style.top = '-9999px';
+  });
+</script>
 {% endblock %}

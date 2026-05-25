@@ -582,6 +582,7 @@ def register(app):
     @app.route("/admin/orders/<order_id>")
     @require_admin
     def admin_order_detail(order_id):
+        import json as _json
         try:
             order = db.query_one(
                 """SELECT o.*, (u.first_name || ' ' || u.last_name) AS customer_name, u.email AS customer_email
@@ -591,14 +592,23 @@ def register(app):
             if not order:
                 abort(404)
             items = db.query(
-                "SELECT oi.*, p.name AS product_name, p.sku FROM order_items oi "
-                "LEFT JOIN products p ON p.id = oi.product_id WHERE oi.order_id=%s",
+                "SELECT oi.*, COALESCE(oi.product_name_snapshot, p.name) AS product_name, p.sku "
+                "FROM order_items oi LEFT JOIN products p ON p.id = oi.product_id "
+                "WHERE oi.order_id=%s",
                 [order_id]
             )
         except Exception as e:
             flash(f"Error: {e}", "error")
             return redirect(url_for("admin_orders"))
-        return render_template("admin/order_detail.html", order=order, items=items)
+        # Parse shipping address JSON
+        shipping_address = {}
+        raw = order.get("shipping_address_json")
+        if raw:
+            try:
+                shipping_address = _json.loads(raw) if isinstance(raw, str) else raw
+            except Exception:
+                pass
+        return render_template("admin/order_detail.html", order=order, items=items, shipping_address=shipping_address)
 
     @app.route("/admin/orders/<order_id>/status", methods=["POST"])
     @require_admin
