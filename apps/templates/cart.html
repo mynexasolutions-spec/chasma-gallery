@@ -239,23 +239,25 @@
     document.getElementById('removeModal').classList.add('open');
   }
 
-  document.getElementById('removeModalCancel').addEventListener('click', () => {
-    document.getElementById('removeModal').classList.remove('open');
-    _pendingRemovePid = null;
-  });
-
-  document.getElementById('removeModalConfirm').addEventListener('click', () => {
-    if (!_pendingRemovePid) return;
-    document.getElementById('removePid').value = _pendingRemovePid;
-    document.getElementById('removeForm').submit();
-  });
-
-  // Close on backdrop click
-  document.getElementById('removeModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-      this.classList.remove('open');
+  document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('removeModalCancel').addEventListener('click', () => {
+      document.getElementById('removeModal').classList.remove('open');
       _pendingRemovePid = null;
-    }
+    });
+
+    document.getElementById('removeModalConfirm').addEventListener('click', () => {
+      if (!_pendingRemovePid) return;
+      document.getElementById('removePid').value = _pendingRemovePid;
+      document.getElementById('removeForm').submit();
+    });
+
+    // Close on backdrop click
+    document.getElementById('removeModal').addEventListener('click', function (e) {
+      if (e.target === this) {
+        this.classList.remove('open');
+        _pendingRemovePid = null;
+      }
+    });
   });
 
   // ── Prescription file upload ──────────────────────────────────────────────
