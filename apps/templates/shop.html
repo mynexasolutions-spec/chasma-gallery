@@ -896,10 +896,7 @@ function renderMobileChips() {
 function drillChipClick(chipEl, slug, hasChildren) {
   if (hasChildren) {
     expandedLevel1.has(slug) ? expandedLevel1.delete(slug) : expandedLevel1.add(slug);
-    const cb = document.querySelector(`input[name="category"][value="${slug}"]`);
-    if (cb) cb.checked = !cb.checked;
     renderMobileChips();
-    scheduleApply();
   } else {
     leafChipClick(chipEl, slug);
   }

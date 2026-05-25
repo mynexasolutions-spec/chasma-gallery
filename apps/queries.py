@@ -354,8 +354,7 @@ def get_product_detail(product_id):
                     [attr["id"]],
                 )
                 values = [{"id": str(r["id"]), "value": r["value"]} for r in fallback]
-                values = sorted(values, key=lambda row: _natural_sort_key(row["value"]))
-            attr["values"] = values
+            attr["values"] = sorted(values, key=lambda row: _natural_sort_key(row["value"]))
 
     return product, images, variations, reviews, attributes
 
