@@ -1,5 +1,6 @@
 import csv
 import io
+import re
 import uuid
 import itertools
 import uuid
@@ -8,6 +9,11 @@ from flask import render_template, request, redirect, url_for, flash, abort, ses
 import db
 from helpers import slugify, get_cached_store_settings, get_unique_slug, handle_upload
 from queries import get_products, get_categories, get_brands, get_admin_stats, get_featured_categories, get_trending_shapes, get_filter_attributes, PRODUCTS_SELECT
+
+
+def _natural_sort_key(value):
+    text = str(value or "").strip().lower()
+    return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", text)]
 
 
 def _collect_val_ids(form):
@@ -194,9 +200,10 @@ def register(app):
         brands         = get_brands()
         all_attributes = db.query("SELECT * FROM attributes ORDER BY name ASC")
         for attr in all_attributes:
-            attr["options"] = db.query(
+            options = db.query(
                 "SELECT * FROM attribute_values WHERE attribute_id = %s ORDER BY value ASC", [attr["id"]]
             )
+            attr["options"] = sorted(options, key=lambda row: _natural_sort_key(row["value"]))
         
         if request.method == "POST":
             f = request.form
@@ -301,7 +308,8 @@ def register(app):
         brands = get_brands()
         all_attributes = db.query("SELECT * FROM attributes ORDER BY name ASC")
         for attr in all_attributes:
-            attr["options"] = db.query("SELECT * FROM attribute_values WHERE attribute_id = %s ORDER BY value ASC", [attr["id"]])
+            options = db.query("SELECT * FROM attribute_values WHERE attribute_id = %s ORDER BY value ASC", [attr["id"]])
+            attr["options"] = sorted(options, key=lambda row: _natural_sort_key(row["value"]))
         
         if request.method == "POST":
             f = request.form
@@ -723,6 +731,7 @@ def register(app):
         values = db.query(
             "SELECT * FROM attribute_values WHERE attribute_id = %s ORDER BY value ASC", [attr_id]
         )
+        values = sorted(values, key=lambda row: _natural_sort_key(row["value"]))
         return render_template("admin/attribute_values.html", attribute=attribute, values=values)
 
     @app.route("/admin/attributes/<attr_id>/values/bulk_update", methods=["POST"])
@@ -802,15 +811,16 @@ def register(app):
             WHERE pa.product_id = %s ORDER BY pa.display_order ASC
         """, [product_id])
         for attr in linked_attributes:
-            attr["options"] = db.query("""
+            options = db.query("""
                 SELECT av.* FROM attribute_values av
                 JOIN product_attribute_values pav ON pav.attribute_value_id = av.id
                 WHERE av.attribute_id = %s AND pav.product_id = %s ORDER BY av.value ASC
             """, [attr["id"], product_id])
-            if not attr["options"]:
-                attr["options"] = db.query(
+            if not options:
+                options = db.query(
                     "SELECT * FROM attribute_values WHERE attribute_id = %s ORDER BY value ASC", [attr["id"]]
                 )
+            attr["options"] = sorted(options, key=lambda row: _natural_sort_key(row["value"]))
         return render_template(
             "admin/variations.html", product=product, variations=variations, attributes=linked_attributes
         )

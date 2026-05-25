@@ -1,9 +1,15 @@
 import math
 import datetime as _dt
+import re
 import db
 from helpers import ttl_cache
 
 _EPOCH = _dt.datetime.min
+
+
+def _natural_sort_key(value):
+    text = str(value or "").strip().lower()
+    return [int(part) if part.isdigit() else part for part in re.split(r"(\d+)", text)]
 
 # Uses a LATERAL join to compute variable-product min price once per row
 # instead of a correlated subquery that re-runs for every product.
@@ -206,10 +212,11 @@ def get_filter_attributes():
         ORDER BY a.name ASC
     """)
     for attr in attrs:
-        attr["options"] = db.query(
+            options = db.query(
             "SELECT id, value FROM attribute_values WHERE attribute_id = %s ORDER BY value ASC",
             [attr["id"]],
         )
+            attr["options"] = sorted(options, key=lambda row: _natural_sort_key(row["value"]))
     return attrs
 
 
@@ -347,6 +354,7 @@ def get_product_detail(product_id):
                     [attr["id"]],
                 )
                 values = [{"id": str(r["id"]), "value": r["value"]} for r in fallback]
+                values = sorted(values, key=lambda row: _natural_sort_key(row["value"]))
             attr["values"] = values
 
     return product, images, variations, reviews, attributes
