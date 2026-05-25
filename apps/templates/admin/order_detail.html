@@ -68,7 +68,17 @@
         <tbody>
           {% for item in items %}
           <tr>
-            <td style="font-weight:600; max-width:260px; word-break:break-word;">{{ item.product_name or 'Deleted Product' }}</td>
+            <td style="font-weight:600; max-width:260px; word-break:break-word;">
+              {% if item.product_id %}
+              <a href="{{ url_for('public.product_detail', product_id=item.product_id) }}" target="_blank"
+                 style="color:var(--admin-primary); text-decoration:none;"
+                 onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
+                {{ item.product_name or 'Deleted Product' }}
+              </a>
+              {% else %}
+              {{ item.product_name or 'Deleted Product' }}
+              {% endif %}
+            </td>
             <td style="color:var(--admin-text-muted); font-family:monospace; font-size:0.8125rem;">{{ item.sku or '—' }}</td>
             <td>{{ item.quantity }}</td>
             <td>₹{{ "%.2f"|format(item.unit_price) }}</td>
