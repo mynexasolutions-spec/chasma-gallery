@@ -251,6 +251,7 @@ _MIGRATIONS = [
            SELECT 1 FROM attribute_values
            WHERE attribute_id = '1f072049-fc89-4d83-a195-cb2aba8f21fe' AND value = 'Kids'
        )""",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS prescription_url TEXT DEFAULT ''",
 ]
 
 

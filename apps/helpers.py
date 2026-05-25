@@ -113,12 +113,12 @@ def handle_upload(file, folder="chasma-gallery"):
         result = cloudinary.uploader.upload(
             file,
             folder=folder,
-            resource_type="image",
+            resource_type="auto",
             overwrite=False,
         )
         return result["secure_url"]
     except Exception as e:
-        raise RuntimeError(f"Image upload failed: {e}") from e
+        raise RuntimeError(f"Upload failed: {e}") from e
 
 
 CLOUDINARY_MAPPING = {

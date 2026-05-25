@@ -183,7 +183,6 @@ def checkout():
     if request.method == "POST":
         payment_method = request.form.get("payment_method", "").strip()
         coupon_code    = request.form.get("coupon_code", "").strip().upper()
-        notes          = request.form.get("notes", "").strip()
         save_address   = request.form.get("save_address") == "on"
         saved_address_id = request.form.get("saved_address_id", "").strip()
         addr_first     = request.form.get("addr_first_name", "").strip()
@@ -195,6 +194,11 @@ def checkout():
         addr_state     = request.form.get("addr_state", "").strip()
         addr_pin       = request.form.get("addr_pincode", "").strip()
         addr_country   = request.form.get("addr_country", "India").strip()
+
+        # Read prescription + notes from cart session (set at cart page)
+        cart_extras = session.get("cart_extras", {})
+        notes = cart_extras.get("notes", "")
+        prescription_url = cart_extras.get("prescription_url", "")
 
         # Validate payment method
         if payment_method not in ALLOWED_PAYMENT_METHODS:
@@ -293,12 +297,12 @@ def checkout():
                 """INSERT INTO orders
                    (id, order_number, user_id, subtotal, shipping_amount, total_amount, status,
                     payment_method, payment_status, shipping_address_json, customer_name,
-                    customer_email, customer_phone, notes, coupon_code, discount_amount)
-                   VALUES (%s,%s,%s,%s,%s,%s,'pending',%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                    customer_email, customer_phone, notes, coupon_code, discount_amount, prescription_url)
+                   VALUES (%s,%s,%s,%s,%s,%s,'pending',%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                 [order_id, order_number, uid, subtotal, shipping, total,
                  payment_method, payment_status, json.dumps(shipping_addr),
                  customer_name, customer_email, addr_phone, notes,
-                 coupon_code or "", discount_amount],
+                 coupon_code or "", discount_amount, prescription_url],
             )
 
             for item_key, item in cart.items():
@@ -350,6 +354,7 @@ def checkout():
                     pass
 
             session.pop("cart", None)
+            session.pop("cart_extras", None)
             flash("Order placed successfully!", "success")
             return redirect(url_for("checkout.order_success", order_id=order_id))
         except Exception as e:

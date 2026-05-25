@@ -53,28 +53,101 @@
       </form>
     </div>
 
-    <!-- ORDER SUMMARY -->
-    <div class="glass" style="border-radius:1.5rem; padding:1.75rem; position:sticky; top:90px;">
-      <h3 style="font-size:1.3rem; margin-bottom:1.5rem;">Order Summary</h3>
-      <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.5rem;">
-        <div style="display:flex; justify-content:space-between; color:var(--text-muted);">
-          <span>Subtotal</span>
-          <span id="cartSubtotal" style="color:var(--text-main);">₹{{ "%.0f"|format(subtotal) }}</span>
+    <!-- PRESCRIPTION + NOTES + ORDER SUMMARY (right column) -->
+    <div style="display:flex; flex-direction:column; gap:1.25rem;">
+
+      <!-- Prescription & Notes form -->
+      <form action="{{ url_for('cart.cart_extras') }}" method="post" enctype="multipart/form-data" id="extrasForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div class="glass" style="border-radius:1.5rem; padding:1.5rem;">
+          <h3 style="font-size:1.05rem; font-weight:700; margin-bottom:0.4rem; display:flex; align-items:center; gap:0.5rem;">
+            <span>📄</span> Prescription Upload
+            <span style="font-size:0.7rem; font-weight:600; color:var(--text-muted); background:rgba(255,255,255,0.07); padding:0.15rem 0.45rem; border-radius:4px; margin-left:0.25rem;">OPTIONAL</span>
+          </h3>
+          <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:1rem; line-height:1.5;">
+            Don't know your lens power? Upload your eye prescription and our opticians will configure your lenses.
+          </p>
+
+          <div id="uploadDropzone"
+               style="background:rgba(255,255,255,0.02); border:1px dashed var(--border-glass); border-radius:0.75rem; padding:1.25rem; text-align:center; position:relative; cursor:pointer; transition:border-color 0.2s;">
+            <input type="file" name="prescription" id="prescriptionInput"
+                   accept=".pdf,.jpg,.jpeg,.png"
+                   style="position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; z-index:5;"
+                   onchange="handleCartFileSelect(this)" />
+            <div id="uploadPrompt" style="display:flex; flex-direction:column; align-items:center; gap:0.4rem; pointer-events:none;">
+              <span style="font-size:1.75rem;">📤</span>
+              <span style="font-size:0.88rem; font-weight:700; color:var(--text-main);">Click to upload prescription</span>
+              <span style="font-size:0.75rem; color:var(--text-muted);">PDF, JPG, PNG — Max 5 MB</span>
+            </div>
+            <div id="uploadSelected" style="display:none; flex-direction:column; align-items:center; gap:0.4rem; pointer-events:none;">
+              <span style="font-size:1.75rem;">✅</span>
+              <span style="font-size:0.88rem; font-weight:700; color:var(--primary);" id="selectedFileName"></span>
+              <span style="font-size:0.75rem; color:var(--text-muted);" id="selectedFileSize"></span>
+              <button type="button" onclick="clearCartFile(event)"
+                      style="pointer-events:all; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25);
+                             color:#f87171; font-size:0.75rem; padding:0.25rem 0.75rem; border-radius:6px;
+                             font-weight:700; cursor:pointer; margin-top:0.2rem; z-index:10; position:relative;">Remove File</button>
+            </div>
+          </div>
+          <div id="fileUploadError" style="display:none; font-size:0.82rem; color:#f87171; margin-top:0.5rem; font-weight:600;"></div>
+
+          {% if saved_prescription_name %}
+          <div style="margin-top:0.75rem; display:flex; align-items:center; gap:0.5rem; font-size:0.82rem; color:#22c55e;">
+            <span>✅</span>
+            <span>Saved: <strong>{{ saved_prescription_name }}</strong> — will be sent with your order</span>
+          </div>
+          {% endif %}
+
+          <!-- Order Notes -->
+          <div style="margin-top:1.25rem;">
+            <label for="cartNotes" style="display:block; font-size:0.8rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.4rem;">
+              Additional Notes <span style="font-weight:400; text-transform:none;">(optional)</span>
+            </label>
+            <textarea id="cartNotes" name="notes" rows="3"
+                      placeholder="Any special instructions for your order…"
+                      style="width:100%; padding:0.75rem 1rem; background:rgba(255,255,255,0.05);
+                             border:1px solid var(--border-glass); border-radius:0.625rem;
+                             color:var(--text-main); font-size:0.9rem; outline:none; resize:vertical;
+                             font-family:inherit; box-sizing:border-box; transition:border-color 0.2s;"
+                      onfocus="this.style.borderColor='var(--primary)'"
+                      onblur="this.style.borderColor='var(--border-glass)'">{{ saved_notes }}</textarea>
+          </div>
+
+          <button type="submit"
+                  style="width:100%; margin-top:1rem; padding:0.8rem; background:rgba(255,255,255,0.08);
+                         border:1px solid var(--border-glass); color:var(--text-main); border-radius:0.75rem;
+                         font-weight:700; font-size:0.9rem; cursor:pointer; transition:background 0.2s;"
+                  onmouseover="this.style.background='rgba(255,255,255,0.13)'"
+                  onmouseout="this.style.background='rgba(255,255,255,0.08)'">
+            💾 Save Details
+          </button>
         </div>
-        <div style="display:flex; justify-content:space-between; color:var(--text-muted);">
-          <span>Shipping</span>
-          <span id="cartShipping" style="color:{% if shipping == 0 %}#22c55e{% else %}var(--text-main){% endif %};">
-            {% if shipping == 0 %}Free{% else %}₹{{ "%.0f"|format(shipping) }}{% endif %}
-          </span>
+      </form>
+
+      <!-- ORDER SUMMARY -->
+      <div class="glass" style="border-radius:1.5rem; padding:1.75rem; position:sticky; top:90px;">
+        <h3 style="font-size:1.3rem; margin-bottom:1.5rem;">Order Summary</h3>
+        <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.5rem;">
+          <div style="display:flex; justify-content:space-between; color:var(--text-muted);">
+            <span>Subtotal</span>
+            <span id="cartSubtotal" style="color:var(--text-main);">₹{{ "%.0f"|format(subtotal) }}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; color:var(--text-muted);">
+            <span>Shipping</span>
+            <span id="cartShipping" style="color:{% if shipping == 0 %}#22c55e{% else %}var(--text-main){% endif %};">
+              {% if shipping == 0 %}Free{% else %}₹{{ "%.0f"|format(shipping) }}{% endif %}
+            </span>
+          </div>
+          <p id="shippingNote" style="font-size:0.8rem; color:var(--text-muted); {% if shipping == 0 %}display:none;{% endif %}">Add ₹{{ "%.0f"|format(999 - subtotal) }} more for free shipping</p>
+          <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:0.75rem; display:flex; justify-content:space-between; font-weight:700; font-size:1.1rem;">
+            <span>Total</span>
+            <span id="cartTotal" style="color:var(--primary);">₹{{ "%.0f"|format(total) }}</span>
+          </div>
         </div>
-        <p id="shippingNote" style="font-size:0.8rem; color:var(--text-muted); {% if shipping == 0 %}display:none;{% endif %}">Add ₹{{ "%.0f"|format(999 - subtotal) }} more for free shipping</p>
-        <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:0.75rem; display:flex; justify-content:space-between; font-weight:700; font-size:1.1rem;">
-          <span>Total</span>
-          <span id="cartTotal" style="color:var(--primary);">₹{{ "%.0f"|format(total) }}</span>
-        </div>
+        <a href="{{ url_for('checkout.checkout') }}" style="display:block; width:100%; padding:1rem; background:var(--primary); color:white; text-align:center; border-radius:0.75rem; font-weight:700; font-size:1rem; text-decoration:none;">Proceed to Checkout →</a>
+        <a href="{{ url_for('public.shop') }}" style="display:block; text-align:center; margin-top:0.75rem; color:var(--text-muted); font-size:0.9rem;">← Continue Shopping</a>
       </div>
-      <a href="{{ url_for('checkout.checkout') }}" style="display:block; width:100%; padding:1rem; background:var(--primary); color:white; text-align:center; border-radius:0.75rem; font-weight:700; font-size:1rem; text-decoration:none;">Proceed to Checkout →</a>
-      <a href="{{ url_for('public.shop') }}" style="display:block; text-align:center; margin-top:0.75rem; color:var(--text-muted); font-size:0.9rem;">← Continue Shopping</a>
+
     </div>
   </div>
 
@@ -184,6 +257,46 @@
       _pendingRemovePid = null;
     }
   });
+
+  // ── Prescription file upload ──────────────────────────────────────────────
+  function handleCartFileSelect(input) {
+    const file = input.files[0];
+    const errorBox = document.getElementById('fileUploadError');
+    if (!file) { clearCartFile(); return; }
+
+    errorBox.style.display = 'none';
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      errorBox.textContent = 'File is too large. Maximum allowed size is 5 MB.';
+      errorBox.style.display = 'block';
+      input.value = '';
+      return;
+    }
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['pdf','jpg','jpeg','png'].includes(ext)) {
+      errorBox.textContent = 'Invalid file type. Only PDF, JPG, JPEG, and PNG are allowed.';
+      errorBox.style.display = 'block';
+      input.value = '';
+      return;
+    }
+
+    document.getElementById('selectedFileName').textContent = file.name;
+    document.getElementById('selectedFileSize').textContent = (file.size / (1024*1024)).toFixed(2) + ' MB';
+    document.getElementById('uploadPrompt').style.display = 'none';
+    document.getElementById('uploadSelected').style.display = 'flex';
+    document.getElementById('uploadDropzone').style.borderColor = 'var(--primary)';
+  }
+
+  function clearCartFile(e) {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    const input = document.getElementById('prescriptionInput');
+    if (input) input.value = '';
+    document.getElementById('uploadPrompt').style.display = 'flex';
+    document.getElementById('uploadSelected').style.display = 'none';
+    document.getElementById('uploadDropzone').style.borderColor = 'var(--border-glass)';
+    document.getElementById('fileUploadError').style.display = 'none';
+  }
 </script>
 
 <!-- Remove Confirmation Modal -->

@@ -5,6 +5,9 @@ from queries import PRODUCTS_SELECT
 
 bp = Blueprint("cart", __name__)
 
+_ALLOWED_PRESCRIPTION_EXTS = {".pdf", ".jpg", ".jpeg", ".png"}
+_MAX_PRESCRIPTION_SIZE = 5 * 1024 * 1024  # 5 MB
+
 
 @bp.route("/cart")
 def view_cart():
@@ -12,13 +15,53 @@ def view_cart():
     cart_items, subtotal = refresh_cart_prices(cart_items)
     session["cart"] = cart_items
     shipping = 0 if subtotal >= 999 else 99
+    extras = session.get("cart_extras", {})
     return render_template(
         "cart.html",
         cart_items=cart_items,
         subtotal=subtotal,
         shipping=shipping,
         total=subtotal + shipping,
+        saved_notes=extras.get("notes", ""),
+        saved_prescription_name=extras.get("prescription_name", ""),
     )
+
+
+@bp.route("/cart/extras", methods=["POST"])
+def cart_extras():
+    """Save prescription upload + order notes to session for use at checkout."""
+    notes = request.form.get("notes", "").strip()
+    prescription_url = session.get("cart_extras", {}).get("prescription_url", "")
+    prescription_name = session.get("cart_extras", {}).get("prescription_name", "")
+
+    prescription_file = request.files.get("prescription")
+    if prescription_file and prescription_file.filename:
+        from os import path
+        _, ext = path.splitext(prescription_file.filename.lower())
+        if ext not in _ALLOWED_PRESCRIPTION_EXTS:
+            flash("Invalid file type. Only PDF, JPG, JPEG, and PNG are allowed.", "error")
+            return redirect(url_for("cart.view_cart"))
+        prescription_file.seek(0, 2)
+        file_size = prescription_file.tell()
+        prescription_file.seek(0)
+        if file_size > _MAX_PRESCRIPTION_SIZE:
+            flash("Prescription file is too large. Maximum size allowed is 5MB.", "error")
+            return redirect(url_for("cart.view_cart"))
+        try:
+            from helpers import handle_upload
+            prescription_url = handle_upload(prescription_file)
+            prescription_name = prescription_file.filename
+        except Exception as e:
+            flash(f"Error uploading prescription: {e}", "error")
+            return redirect(url_for("cart.view_cart"))
+
+    session["cart_extras"] = {
+        "notes": notes,
+        "prescription_url": prescription_url,
+        "prescription_name": prescription_name,
+    }
+    flash("Order details saved!", "success")
+    return redirect(url_for("cart.view_cart"))
 
 
 @bp.route("/cart/add", methods=["POST"])

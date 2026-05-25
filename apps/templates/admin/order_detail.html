@@ -71,6 +71,29 @@
       </div>
     </div>
 
+    <!-- Doctor's Prescription -->
+    <div class="admin-card">
+      <h3 style="font-size:0.875rem; font-weight:700; color:var(--admin-text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:1rem;">Doctor's Prescription</h3>
+      {% if order.prescription_url %}
+        {% set is_pdf = order.prescription_url.lower().endswith('.pdf') or '.pdf?' in order.prescription_url.lower() %}
+        <div style="text-align:center; display:flex; flex-direction:column; align-items:center; gap:0.75rem;">
+          {% if is_pdf %}
+            <div style="font-size:3rem; line-height:1;">📄</div>
+            <div style="font-size:0.875rem; font-weight:600; color:var(--admin-text-main);">Prescription PDF File</div>
+          {% else %}
+            <a href="{{ order.prescription_url }}" target="_blank" style="display:block; width:120px; height:120px; border-radius:8px; overflow:hidden; border:1px solid var(--admin-border); background:#f9fafb;">
+              <img src="{{ order.prescription_url }}" style="width:100%; height:100%; object-fit:contain; transition:transform 0.3s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" />
+            </a>
+          {% endif %}
+          <a href="{{ order.prescription_url }}" target="_blank" class="admin-btn btn-primary" style="justify-content:center; width:100%; padding:0.5rem 1rem; font-size:0.82rem; background:#4f46e5; border-color:#4f46e5; text-decoration:none;">
+            View Prescription
+          </a>
+        </div>
+      {% else %}
+        <div style="color:var(--admin-text-muted); font-size:0.875rem; font-style:italic;">No prescription uploaded.</div>
+      {% endif %}
+    </div>
+
     <!-- Actions -->
     <div class="admin-card">
       <h3 style="font-size:0.875rem; font-weight:700; color:var(--admin-text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:1rem;">Manage Status</h3>
