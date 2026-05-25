@@ -48,6 +48,192 @@
     .account-nav-item { white-space: nowrap; padding: 0.75rem 1.25rem; }
     .logout-item { margin-top: 0; border-top: none; padding-top: 0; }
   }
+
+  @media(max-width: 600px) {
+    .section-padding {
+      padding-top: 88px !important;
+      padding-bottom: 2rem !important;
+    }
+
+    .section-padding > .container {
+      padding: 0 0.85rem !important;
+    }
+
+    .section-padding > .container > div:first-child {
+      margin-bottom: 2rem !important;
+    }
+
+    .section-padding h1 {
+      font-size: 2.2rem !important;
+      line-height: 0.95 !important;
+      word-break: break-word;
+    }
+
+    .section-padding p {
+      font-size: 0.96rem !important;
+      line-height: 1.5;
+    }
+
+    .account-layout {
+      gap: 1rem;
+    }
+
+    .account-sidebar {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-auto-rows: minmax(76px, auto);
+      gap: 0.75rem;
+      overflow: visible;
+      padding-bottom: 0;
+      border-bottom: none;
+      margin-bottom: 1.25rem;
+    }
+
+    .account-nav-item {
+      width: 100%;
+      box-sizing: border-box;
+      white-space: normal;
+      min-height: 84px;
+      padding: 0.95rem 1rem;
+      border-radius: 1rem;
+      font-size: 0.92rem;
+      line-height: 1.2;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .account-nav-item.active {
+      background: rgba(255,255,255,0.05);
+    }
+
+    .account-nav-item svg {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+    }
+
+    .logout-item {
+      margin-top: 0;
+      border-top: 1px solid rgba(248,113,113,0.18);
+      padding-top: 0.95rem;
+      color: #f87171;
+      background: rgba(248,113,113,0.08);
+      justify-content: flex-start;
+    }
+
+    .account-content {
+      min-width: 0;
+    }
+
+    .account-tab-panel > .glass,
+    #tab-addresses > .glass {
+      border-radius: 1.25rem !important;
+      padding: 1.25rem !important;
+    }
+
+    #tab-profile .glass,
+    #tab-addresses .glass {
+      max-width: 100% !important;
+    }
+
+    #tab-profile h2,
+    #tab-addresses h3,
+    #tab-orders h3 {
+      font-size: 1.2rem !important;
+      margin-bottom: 1.25rem !important;
+    }
+
+    .form-row {
+      grid-template-columns: 1fr;
+      gap: 0.9rem;
+    }
+
+    .field-input {
+      font-size: 16px;
+      padding: 0.8rem 0.95rem;
+    }
+
+    .btn-primary {
+      width: 100%;
+    }
+
+    #tab-addresses > div[style*="grid-template-columns: repeat(auto-fill, minmax(300px, 1fr))"] {
+      grid-template-columns: 1fr !important;
+      gap: 1rem !important;
+    }
+
+    .addr-card {
+      padding: 1rem 1rem 0.95rem;
+    }
+
+    .addr-card > div:last-child {
+      gap: 0.5rem;
+    }
+
+    #tab-orders > .glass {
+      border-radius: 1.25rem !important;
+    }
+
+    #tab-orders > .glass > div:first-child {
+      display: none !important;
+    }
+
+    .order-list-row {
+      grid-template-columns: 1fr !important;
+      gap: 0.7rem !important;
+      padding: 1rem 1rem !important;
+      align-items: start !important;
+    }
+
+    .order-list-row > div {
+      min-width: 0;
+    }
+
+    .order-list-row > div:nth-child(1) {
+      font-size: 0.82rem;
+    }
+
+    .order-list-row > div:nth-child(2),
+    .order-list-row > div:nth-child(4),
+    .order-list-row > div:nth-child(5) {
+      font-size: 0.88rem;
+    }
+
+    .order-list-row > div:nth-child(3) {
+      display: inline-flex;
+      width: fit-content;
+    }
+
+    .order-list-row > div:nth-child(5) {
+      align-items: flex-start;
+    }
+
+    .order-list-row > div:nth-child(5) button {
+      padding: 0;
+    }
+
+    #cancelModal {
+      padding: 1rem !important;
+    }
+
+    #cancelModal > div {
+      width: 100% !important;
+      max-width: 100% !important;
+      padding: 1.25rem !important;
+      border-radius: 1rem !important;
+    }
+
+    #cancelStep1 > div,
+    #cancelStep2 > div:last-child {
+      flex-direction: column !important;
+      align-items: stretch !important;
+    }
+
+    #cancelStep1 button,
+    #cancelStep2 button {
+      width: 100% !important;
+    }
+  }
 </style>
 {% endblock %}
 
