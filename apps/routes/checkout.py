@@ -28,7 +28,42 @@ def _calc_shipping(subtotal, settings=None):
 
 # ── Coupon validation ──────────────────────────────────────────────────────────
 
-def _validate_coupon(code, user_id, subtotal):
+def _eligible_subtotal(coupon_id, cart):
+    """Returns subtotal of cart items not in excluded categories for this coupon."""
+    excluded_rows = db.query(
+        "SELECT category_id FROM coupon_excluded_categories WHERE coupon_id=%s", [coupon_id]
+    )
+    if not excluded_rows:
+        return None  # No exclusions — full subtotal applies
+
+    excluded_ids = {str(r["category_id"]) for r in excluded_rows}
+
+    product_ids = [str(item.get("product_id", "")) for item in cart.values() if item.get("product_id")]
+    if not product_ids:
+        return 0.0
+
+    placeholders = ",".join(["%s"] * len(product_ids))
+    products = db.query(
+        f"SELECT p.id, p.category_id, c.parent_id FROM products p "
+        f"LEFT JOIN categories c ON c.id = p.category_id WHERE p.id IN ({placeholders})",
+        product_ids,
+    )
+    cat_map = {str(r["id"]): r for r in products}
+
+    eligible = 0.0
+    for item in cart.values():
+        pid = str(item.get("product_id", ""))
+        product = cat_map.get(pid)
+        if product:
+            cat_id = str(product.get("category_id") or "")
+            parent_id = str(product.get("parent_id") or "")
+            if cat_id in excluded_ids or parent_id in excluded_ids:
+                continue
+        eligible += float(item.get("price", 0)) * int(item.get("qty", 0))
+    return eligible
+
+
+def _validate_coupon(code, user_id, subtotal, cart=None):
     """Returns (coupon_dict, discount_amount, error_message)."""
     code = (code or "").strip().upper()
     if not code:
@@ -62,13 +97,22 @@ def _validate_coupon(code, user_id, subtotal):
         if row and int(row["cnt"]) >= int(coupon["usage_limit_per_user"]):
             return None, 0.0, "You have already used this coupon."
 
+    # Compute eligible subtotal respecting category exclusions
+    discount_base = subtotal
+    if cart:
+        computed = _eligible_subtotal(coupon["id"], cart)
+        if computed is not None:
+            if computed <= 0:
+                return None, 0.0, "This coupon is not applicable to any items in your cart."
+            discount_base = computed
+
     value = float(coupon.get("value") or 0)
     if coupon["type"] == "percentage":
-        discount = subtotal * (value / 100)
+        discount = discount_base * (value / 100)
         if coupon.get("max_discount"):
             discount = min(discount, float(coupon["max_discount"]))
     else:
-        discount = min(value, subtotal)
+        discount = min(value, discount_base)
 
     return coupon, round(discount, 2), None
 
@@ -85,8 +129,9 @@ def apply_coupon():
     code     = (data.get("coupon_code") or data.get("code") or "").strip()
     subtotal = float(data.get("subtotal") or 0)
     uid      = session["user"]["id"]
+    cart     = session.get("cart", {})
 
-    coupon, discount, error = _validate_coupon(code, uid, subtotal)
+    coupon, discount, error = _validate_coupon(code, uid, subtotal, cart)
     if error:
         return jsonify({"valid": False, "error": error})
 
@@ -132,7 +177,7 @@ def rzp_create_order():
         discount = 0.0
         if coupon_code:
             uid = session["user"]["id"]
-            _, discount, _ = _validate_coupon(coupon_code, uid, subtotal)
+            _, discount, _ = _validate_coupon(coupon_code, uid, subtotal, cart)
 
         shipping     = _calc_shipping(subtotal, settings)
         amount_total = max(0.0, subtotal + shipping - discount)
@@ -251,7 +296,7 @@ def checkout():
         coupon          = None
         discount_amount = 0.0
         if coupon_code:
-            coupon, discount_amount, coupon_error = _validate_coupon(coupon_code, uid, subtotal)
+            coupon, discount_amount, coupon_error = _validate_coupon(coupon_code, uid, subtotal, cart)
             if coupon_error:
                 flash(f"Coupon: {coupon_error}", "error")
                 coupon_code     = ""

@@ -218,6 +218,11 @@ _MIGRATIONS = [
     )""",
     "CREATE INDEX IF NOT EXISTS idx_coupon_usages_coupon_id ON coupon_usages(coupon_id)",
     "CREATE INDEX IF NOT EXISTS idx_coupon_usages_user_id   ON coupon_usages(user_id)",
+    """CREATE TABLE IF NOT EXISTS coupon_excluded_categories (
+        coupon_id   UUID NOT NULL REFERENCES coupons(id) ON DELETE CASCADE,
+        category_id UUID NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+        PRIMARY KEY (coupon_id, category_id)
+    )""",
 
     # ── Performance indexes ─────────────────────────────────────────────────
     "CREATE INDEX IF NOT EXISTS idx_products_is_active       ON products(is_active)",

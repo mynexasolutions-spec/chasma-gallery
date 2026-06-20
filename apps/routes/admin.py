@@ -993,19 +993,37 @@ def register(app):
         """)
         return render_template("admin/coupons.html", coupons=coupons)
 
+    def _save_coupon_exclusions(coupon_id, form):
+        excluded_ids = form.getlist("excluded_categories")
+        db.execute("DELETE FROM coupon_excluded_categories WHERE coupon_id=%s", [coupon_id])
+        for cat_id in excluded_ids:
+            db.execute(
+                "INSERT INTO coupon_excluded_categories (coupon_id, category_id) VALUES (%s,%s)",
+                [coupon_id, cat_id]
+            )
+
+    def _get_coupon_form_data():
+        parents = db.query("SELECT * FROM categories WHERE parent_id IS NULL ORDER BY name")
+        children = db.query("SELECT * FROM categories WHERE parent_id IS NOT NULL ORDER BY name")
+        child_map = {}
+        for c in children:
+            child_map.setdefault(str(c["parent_id"]), []).append(c)
+        return parents, child_map
+
     @app.route("/admin/coupons/new", methods=["GET", "POST"])
     @require_admin
     def admin_coupon_new():
         if request.method == "POST":
             f = request.form
             try:
+                coupon_id = str(uuid.uuid4())
                 db.execute(
-                    """INSERT INTO coupons 
-                       (id, code, type, value, min_order_amount, usage_limit, 
+                    """INSERT INTO coupons
+                       (id, code, type, value, min_order_amount, usage_limit,
                         usage_limit_per_user, max_discount, expires_at, is_active)
                        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     [
-                        str(uuid.uuid4()), f.get("code").upper(), f.get("type"),
+                        coupon_id, f.get("code").upper(), f.get("type"),
                         float(f.get("value") or 0), float(f.get("min_order_amount") or 0),
                         int(f.get("usage_limit")) if f.get("usage_limit") else None,
                         int(f.get("usage_limit_per_user") or 1),
@@ -1014,11 +1032,14 @@ def register(app):
                         f.get("is_active") == "on"
                     ]
                 )
+                _save_coupon_exclusions(coupon_id, f)
                 flash("Coupon created successfully.", "success")
                 return redirect(url_for("admin_coupons"))
             except Exception as e:
                 flash(f"Error creating coupon: {e}", "error")
-        return render_template("admin/coupon_form.html", coupon=None)
+        parents, child_map = _get_coupon_form_data()
+        return render_template("admin/coupon_form.html", coupon=None,
+                               parents=parents, child_map=child_map, excluded_ids=set())
 
     @app.route("/admin/coupons/<coupon_id>/edit", methods=["GET", "POST"])
     @require_admin
@@ -1047,11 +1068,16 @@ def register(app):
                         coupon_id
                     ]
                 )
+                _save_coupon_exclusions(coupon_id, f)
                 flash("Coupon updated successfully.", "success")
                 return redirect(url_for("admin_coupons"))
             except Exception as e:
                 flash(f"Error updating coupon: {e}", "error")
-        return render_template("admin/coupon_form.html", coupon=coupon)
+        parents, child_map = _get_coupon_form_data()
+        rows = db.query("SELECT category_id FROM coupon_excluded_categories WHERE coupon_id=%s", [coupon_id])
+        excluded_ids = {str(r["category_id"]) for r in rows}
+        return render_template("admin/coupon_form.html", coupon=coupon,
+                               parents=parents, child_map=child_map, excluded_ids=excluded_ids)
 
     @app.route("/admin/coupons/<coupon_id>/delete", methods=["POST"])
     @require_admin
