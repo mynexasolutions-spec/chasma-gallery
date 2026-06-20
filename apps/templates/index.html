@@ -347,15 +347,18 @@
   startHeroAuto();
 
   // Auto-scroll carousels with seamless loop
+  var carouselPauseTimers = {};
+  var carouselPaused = {};
+
   ['latest-carousel', 'featured-carousel', 'popular-carousel'].forEach(function(id) {
     const el = document.getElementById(id);
     if (!el || el.children.length === 0) return;
     el.innerHTML = el.innerHTML + el.innerHTML;
-    var paused = false;
-    el.addEventListener('mouseenter', function() { paused = true; });
-    el.addEventListener('mouseleave', function() { paused = false; });
+    carouselPaused[id] = false;
+    el.addEventListener('mouseenter', function() { carouselPaused[id] = true; });
+    el.addEventListener('mouseleave', function() { carouselPaused[id] = false; });
     (function tick() {
-      if (!paused) {
+      if (!carouselPaused[id]) {
         el.scrollLeft += 2;
         if (el.scrollLeft >= el.scrollWidth / 2) el.scrollLeft = 0;
       }
@@ -366,7 +369,15 @@
   window.scrollAutoCarousel = function(id, direction) {
     var el = document.getElementById(id);
     if (!el) return;
-    el.scrollBy({ left: 320 * direction, behavior: 'smooth' });
+    // Pause auto-scroll, manually step, then resume after 2s
+    carouselPaused[id] = true;
+    clearTimeout(carouselPauseTimers[id]);
+    var target = el.scrollLeft + 320 * direction;
+    var half = el.scrollWidth / 2;
+    if (target < 0) target = half + target;
+    if (target >= half) target = target - half;
+    el.scrollLeft = target;
+    carouselPauseTimers[id] = setTimeout(function() { carouselPaused[id] = false; }, 2000);
   };
 
   // Scroll function for product tracks
