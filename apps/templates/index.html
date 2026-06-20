@@ -95,15 +95,17 @@
   <div style="width:100vw; margin-left:calc(50% - 50vw); padding:0;">
     <div style="display:flex; justify-content:center; align-items:center; margin-bottom:2.5rem; padding:0 1.5rem; position:relative;">
       <h2 style="font-size:2.2rem;">Featured Products</h2>
-      <div style="position:absolute; right:5%; display:flex; gap:0.5rem;" class="track-arrows">
-        <button style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" onclick="scrollTrack(this, -1)" aria-label="Scroll left"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
-        <button style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" onclick="scrollTrack(this, 1)" aria-label="Scroll right"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+      <div style="position:absolute; right:5%;" class="carousel-arrows">
+        <button style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" onclick="scrollAutoCarousel('featured-carousel',-1)" aria-label="Scroll left"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+        <button style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" onclick="scrollAutoCarousel('featured-carousel',1)" aria-label="Scroll right"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
       </div>
     </div>
-    <div class="product-track">
-      {% for p in featured %}{{ product_card(p) }}{% else %}
-      <p style="color:var(--text-muted); padding:2rem;">No featured products yet.</p>
-      {% endfor %}
+    <div class="latest-overflow">
+      <div class="latest-carousel" id="featured-carousel">
+        {% for p in featured %}{{ product_card(p) }}{% else %}
+        <p style="color:var(--text-muted); padding:2rem;">No featured products yet.</p>
+        {% endfor %}
+      </div>
     </div>
     <div style="display:flex; justify-content:center; margin:2rem 0;">
       <a href="{{ url_for('public.shop') }}" class="glass-btn-professional" style="padding:0.75rem 2.5rem; border-radius:50px; font-weight:bold; font-size:1rem; color:var(--text-main);">View All</a>
@@ -134,15 +136,17 @@
   <div style="width:100vw; margin-left:calc(50% - 50vw); padding:0;">
     <div style="display:flex; justify-content:center; align-items:center; margin-bottom:2.5rem; padding:0 1.5rem; position:relative;">
       <h2 style="font-size:2.2rem;">Latest Releases</h2>
-      <div style="position:absolute; right:5%; display:flex; gap:0.5rem;" class="track-arrows">
-        <button style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" onclick="scrollTrack(this, -1)" aria-label="Scroll left"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
-        <button style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" onclick="scrollTrack(this, 1)" aria-label="Scroll right"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+      <div style="position:absolute; right:5%;" class="carousel-arrows">
+        <button style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" onclick="scrollAutoCarousel('latest-carousel',-1)" aria-label="Scroll left"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+        <button style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" onclick="scrollAutoCarousel('latest-carousel',1)" aria-label="Scroll right"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
       </div>
     </div>
-    <div class="product-track">
-      {% for p in latest %}{{ product_card(p) }}{% else %}
-      <p style="color:var(--text-muted); padding:2rem;">No products found.</p>
-      {% endfor %}
+    <div class="latest-overflow">
+      <div class="latest-carousel" id="latest-carousel">
+        {% for p in latest %}{{ product_card(p) }}{% else %}
+        <p style="color:var(--text-muted); padding:2rem;">No products found.</p>
+        {% endfor %}
+      </div>
     </div>
     <div style="display:flex; justify-content:center; margin:2rem 0;">
       <a href="{{ url_for('public.shop') }}" class="glass-btn-professional" style="padding:0.75rem 2.5rem; border-radius:50px; font-weight:bold; font-size:1rem; color:var(--text-main);">View All</a>
@@ -156,15 +160,17 @@
   <div style="width:100vw; margin-left:calc(50% - 50vw); padding:0;">
     <div style="display:flex; justify-content:center; align-items:center; margin-bottom:2.5rem; padding:0 1.5rem; position:relative;">
       <h2 style="font-size:2.2rem;">Contacts</h2>
-      <div style="position:absolute; right:5%; display:flex; gap:0.5rem;" class="track-arrows">
-        <button style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" onclick="scrollTrack(this, -1)" aria-label="Scroll left"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
-        <button style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" onclick="scrollTrack(this, 1)" aria-label="Scroll right"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+      <div style="position:absolute; right:5%;" class="carousel-arrows">
+        <button style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" onclick="scrollAutoCarousel('popular-carousel',-1)" aria-label="Scroll left"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg></button>
+        <button style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" onclick="scrollAutoCarousel('popular-carousel',1)" aria-label="Scroll right"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
       </div>
     </div>
-    <div class="product-track">
-      {% for p in popular %}{{ product_card(p) }}{% else %}
-      <p style="color:var(--text-muted); padding:2rem;">No products found.</p>
-      {% endfor %}
+    <div class="latest-overflow">
+      <div class="latest-carousel" id="popular-carousel">
+        {% for p in popular %}{{ product_card(p) }}{% else %}
+        <p style="color:var(--text-muted); padding:2rem;">No products found.</p>
+        {% endfor %}
+      </div>
     </div>
     <div style="display:flex; justify-content:center; margin:2rem 0;">
       <a href="{{ url_for('public.shop') }}" class="glass-btn-professional" style="padding:0.75rem 2.5rem; border-radius:50px; font-weight:bold; font-size:1rem; color:var(--text-main);">View All</a>
@@ -339,6 +345,29 @@
   document.getElementById('heroPrev').addEventListener('click', () => { goToSlide(currentSlide - 1); resetHeroAuto(); });
   document.getElementById('heroNext').addEventListener('click', () => { goToSlide(currentSlide + 1); resetHeroAuto(); });
   startHeroAuto();
+
+  // Auto-scroll carousels with seamless loop
+  ['latest-carousel', 'featured-carousel', 'popular-carousel'].forEach(function(id) {
+    const el = document.getElementById(id);
+    if (!el || el.children.length === 0) return;
+    el.innerHTML = el.innerHTML + el.innerHTML;
+    var paused = false;
+    el.addEventListener('mouseenter', function() { paused = true; });
+    el.addEventListener('mouseleave', function() { paused = false; });
+    (function tick() {
+      if (!paused) {
+        el.scrollLeft += 2;
+        if (el.scrollLeft >= el.scrollWidth / 2) el.scrollLeft = 0;
+      }
+      requestAnimationFrame(tick);
+    })();
+  });
+
+  window.scrollAutoCarousel = function(id, direction) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.scrollBy({ left: 320 * direction, behavior: 'smooth' });
+  };
 
   // Scroll function for product tracks
   window.scrollTrack = function(btn, direction) {
