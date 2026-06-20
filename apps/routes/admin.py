@@ -1020,10 +1020,44 @@ def register(app):
                 flash(f"Error creating coupon: {e}", "error")
         return render_template("admin/coupon_form.html", coupon=None)
 
+    @app.route("/admin/coupons/<coupon_id>/edit", methods=["GET", "POST"])
+    @require_admin
+    def admin_coupon_edit(coupon_id):
+        coupon = db.query_one("SELECT * FROM coupons WHERE id=%s", [coupon_id])
+        if not coupon:
+            flash("Coupon not found.", "error")
+            return redirect(url_for("admin_coupons"))
+        if request.method == "POST":
+            f = request.form
+            try:
+                db.execute(
+                    """UPDATE coupons SET
+                       code=%s, type=%s, value=%s, min_order_amount=%s,
+                       usage_limit=%s, usage_limit_per_user=%s,
+                       max_discount=%s, expires_at=%s, is_active=%s
+                       WHERE id=%s""",
+                    [
+                        f.get("code").upper(), f.get("type"),
+                        float(f.get("value") or 0), float(f.get("min_order_amount") or 0),
+                        int(f.get("usage_limit")) if f.get("usage_limit") else None,
+                        int(f.get("usage_limit_per_user") or 1),
+                        float(f.get("max_discount")) if f.get("max_discount") else None,
+                        f.get("expires_at") or None,
+                        f.get("is_active") == "on",
+                        coupon_id
+                    ]
+                )
+                flash("Coupon updated successfully.", "success")
+                return redirect(url_for("admin_coupons"))
+            except Exception as e:
+                flash(f"Error updating coupon: {e}", "error")
+        return render_template("admin/coupon_form.html", coupon=coupon)
+
     @app.route("/admin/coupons/<coupon_id>/delete", methods=["POST"])
     @require_admin
     def admin_coupon_delete(coupon_id):
         try:
+            db.execute("DELETE FROM coupon_usages WHERE coupon_id=%s", [coupon_id])
             db.execute("DELETE FROM coupons WHERE id=%s", [coupon_id])
             flash("Coupon deleted successfully.", "success")
         except Exception as e:
